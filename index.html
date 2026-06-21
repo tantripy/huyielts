@@ -98,7 +98,7 @@
 
         /* App Layout SPA */
         .app-layout {
-            display: none; /* Hidden by default until login */
+            display: none; 
             height: 100vh;
             flex-direction: column;
         }
@@ -200,6 +200,7 @@
         .student-table { width: 100%; border-collapse: collapse; margin-top: 15px; border-radius: 8px; overflow: hidden; box-shadow: 0 0 0 1px var(--border-color); }
         .student-table th, .student-table td { padding: 12px 15px; text-align: left; font-size: 0.9em; border-bottom: 1px solid var(--border-color); }
         .student-table th { background-color: #f1f5f9; font-weight: 600; color: #475569; }
+        .student-table tr:last-child td { border-bottom: none; }
         .student-table tr:hover { background-color: #f8fafc; cursor: pointer; }
         .selected-student { background-color: #eff6ff !important; border-left: 4px solid var(--accent-color); }
 
@@ -277,17 +278,6 @@
 
         #print-report { display: none; }
 
-        /* Responsive and Student role Specific Hiding */
-        body.role-student #view-students, 
-        body.role-student #view-rubrics, 
-        body.role-student #view-reports, 
-        body.role-student #tab-btn-speaking, 
-        body.role-student #tab-btn-rubric,
-        body.role-student .custom-tab-btn,
-        body.role-student .btn-teacher-only {
-            display: none !important;
-        }
-
         @media print {
             * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
             body { background: white; color: black; overflow: visible; display: block; height: auto; margin: 0; padding: 0; }
@@ -302,11 +292,13 @@
 </head>
 <body>
 
+    <!-- OVERLAY LOADING -->
     <div id="loading-overlay">
         <div class="spinner"></div>
         <div class="loading-text" id="loading-message">Đang xử lý, vui lòng đợi...</div>
     </div>
 
+    <!-- VIEW ĐĂNG NHẬP -->
     <div id="login-view">
         <div class="login-card">
             <h2>Đăng Nhập Hệ Thống</h2>
@@ -322,14 +314,17 @@
                 <button type="submit" class="btn btn-primary" style="width: 100%; margin-top: 15px; padding: 12px;">Đăng Nhập</button>
             </form>
             <div style="margin-top: 20px; font-size: 0.85em; color: #64748b;">
-                Tài khoản mặc định GV: admin / 123
+                Tài khoản mặc định Admin: admin / 123
             </div>
         </div>
     </div>
 
+    <!-- AREA XUẤT FILE PDF -->
     <div id="print-report"></div>
 
+    <!-- APP MAIN LAYOUT -->
     <div class="app-layout" id="main-app">
+        <!-- HEADER -->
         <header class="app-header">
             <div style="display: flex; align-items: center;">
                 <button class="menu-toggle" onclick="toggleSidebar()">☰</button>
@@ -342,11 +337,59 @@
         </header>
 
         <div class="app-body">
+            <!-- SIDEBAR -->
             <nav id="side-nav" class="side-nav">
-                </nav>
+                <!-- Nội dung sidebar được render qua JS tùy Role -->
+            </nav>
 
+            <!-- MAIN WORKSPACE -->
             <main class="main-area">
                 
+                <!-- VIEW 0: TEACHER MANAGEMENT (ADMIN ONLY) -->
+                <div id="view-teachers" class="app-view">
+                    <div class="card">
+                        <h2>Quản Lý Giảng Viên</h2>
+                        <form id="teacher-form" onsubmit="event.preventDefault(); saveTeacher();">
+                            <input type="hidden" id="teacher-idx" value="">
+                            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px;">
+                                <div class="form-group">
+                                    <label>Tên đăng nhập (Username)</label>
+                                    <input type="text" id="tc-username" class="form-control" required placeholder="Ví dụ: gv_nguyenvana">
+                                </div>
+                                <div class="form-group">
+                                    <label>Họ và Tên</label>
+                                    <input type="text" id="tc-name" class="form-control" required placeholder="Ví dụ: Nguyễn Văn A">
+                                </div>
+                                <div class="form-group">
+                                    <label>Mật khẩu</label>
+                                    <input type="text" id="tc-password" class="form-control" required value="123456">
+                                </div>
+                            </div>
+                            <div style="margin-top: 10px;">
+                                <button type="submit" class="btn btn-success" id="btn-save-teacher">Lưu Giảng Viên</button>
+                                <button type="button" class="btn btn-secondary" onclick="resetTeacherForm()">Tạo Mới</button>
+                            </div>
+                        </form>
+                    </div>
+
+                    <div class="card">
+                        <h3>Danh Sách Giảng Viên</h3>
+                        <table class="student-table">
+                            <thead>
+                                <tr>
+                                    <th>Username</th>
+                                    <th>Họ Tên</th>
+                                    <th>Mật Khẩu</th>
+                                    <th></th>
+                                </tr>
+                            </thead>
+                            <tbody id="teacher-list-body">
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- VIEW 1: STUDENT MANAGEMENT (TEACHER & ADMIN ONLY) -->
                 <div id="view-students" class="app-view">
                     <div class="card">
                         <h2>Quản Lý Phân Cấp Học Viên</h2>
@@ -391,17 +434,17 @@
                             <hr style="border: 0; border-top: 1px dashed #cbd5e1; margin: 20px 0;">
 
                             <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 15px;">
+                                <div class="form-group" id="teacher-select-group" style="display: none;">
+                                    <label>Giảng viên phụ trách</label>
+                                    <select id="std-teacher" class="form-control"></select>
+                                </div>
                                 <div class="form-group">
-                                    <label>Mã Số Sinh Viên (Username)</label>
-                                    <input type="text" id="std-id" class="form-control" required placeholder="Dùng làm tài khoản đăng nhập">
+                                    <label>Mã Số Sinh Viên (Dùng làm Username đăng nhập)</label>
+                                    <input type="text" id="std-id" class="form-control" required placeholder="Ví dụ: SV12345">
                                 </div>
                                 <div class="form-group">
                                     <label>Họ và Tên</label>
                                     <input type="text" id="std-name" class="form-control" required placeholder="Ví dụ: Nguyễn Văn A">
-                                </div>
-                                <div class="form-group">
-                                    <label>Ngày Sinh</label>
-                                    <input type="date" id="std-dob" class="form-control" required>
                                 </div>
                                 <div class="form-group">
                                     <label>Level Cấp Độ</label>
@@ -417,7 +460,7 @@
 
                     <div class="card">
                         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
-                            <h3 style="margin: 0;">Danh Sách Học Viên Của Bạn</h3>
+                            <h3 style="margin: 0;">Danh Sách Học Viên</h3>
                             <input type="text" id="search-student" class="form-control" style="width: 300px; padding: 8px 12px;" placeholder="🔍 Tìm theo Tên, Mã số..." onkeyup="renderStudentList()">
                         </div>
                         <table class="student-table">
@@ -427,6 +470,7 @@
                                     <th>Họ Tên</th>
                                     <th>Trường / Khoa</th>
                                     <th>Khóa / Lớp</th>
+                                    <th id="th-gv-col">GV Phụ Trách</th>
                                     <th></th>
                                 </tr>
                             </thead>
@@ -441,12 +485,13 @@
                     </div>
                 </div>
 
+                <!-- VIEW 2: GRADING / SUBMIT WORKSPACE -->
                 <div id="view-grading" class="app-view">
                     
                     <div id="no-student-selected-msg" class="card" style="text-align:center; padding: 60px; color: #64748b;">
                         <h2 style="border: none; margin-bottom: 10px;">Chưa có học viên nào được chọn</h2>
-                        <p>Vui lòng chọn một học viên từ danh sách để bắt đầu chấm điểm.</p>
-                        <button class="btn btn-primary btn-teacher-only" style="margin-top: 20px;" onclick="switchMainView('view-students')">Quay lại Danh Sách</button>
+                        <p>Vui lòng chọn một học viên từ danh sách để xem/chấm bài.</p>
+                        <button class="btn btn-primary" style="margin-top: 20px;" onclick="switchMainView('view-students')">Quay lại Danh Sách</button>
                     </div>
 
                     <div class="card" id="workspace-header" style="display:none;">
@@ -455,7 +500,7 @@
                                 <h2 id="active-student-title" class="header-title-student">Học viên: Chưa có</h2>
                                 <div id="student-detail-info" style="font-size: 0.9em; color: #64748b; font-weight: 500;"></div>
                             </div>
-                            <button class="btn btn-primary" onclick="createNewAssignment()">+ Tạo Bài Mới</button>
+                            <button class="btn btn-primary" id="btn-create-assign" onclick="createNewAssignment()">+ Tạo Bài Mới</button>
                         </div>
                         
                         <div class="assignment-list">
@@ -466,8 +511,8 @@
 
                     <div id="assignment-workspace" style="display:none;">
                         
-                        <div class="assignment-meta-box btn-teacher-only">
-                            <div class="meta-box-title">Thiết Lập Cấu Trúc Đánh Giá (Dành Cho GV)</div>
+                        <div class="assignment-meta-box" id="assignment-meta-box-container">
+                            <div class="meta-box-title">Thiết Lập Cấu Trúc Đánh Giá</div>
                             <div class="form-group">
                                 <input type="text" id="assign-title" class="form-control assign-title-input" placeholder="Tiêu đề Bài Tập (Ví dụ: Bài Thi Giữa Kỳ)">
                             </div>
@@ -478,7 +523,7 @@
                             <div class="form-group">
                                 <textarea id="assign-desc" class="form-control" rows="2" placeholder="Mô tả hoặc yêu cầu chung..."></textarea>
                             </div>
-                            <div class="form-group" style="margin-bottom: 0;">
+                            <div class="form-group" style="margin-bottom: 0;" id="skill-checkboxes-container">
                                 <label style="font-size: 0.85em; text-transform: uppercase;">Lựa chọn các kỹ năng cần đánh giá:</label>
                                 <div id="skill-checkboxes" style="display: flex; gap: 12px; flex-wrap: wrap; margin-top: 10px;">
                                 </div>
@@ -495,14 +540,15 @@
                         <div class="card">
                             <div class="tabs" id="dynamic-tabs-header">
                                 <button class="tab-btn active" id="tab-btn-writing" onclick="switchTab('writing-tab', this)">✍️ Writing</button>
-                                <button class="tab-btn btn-teacher-only" id="tab-btn-speaking" onclick="switchTab('speaking-tab', this)">🗣️ Speaking</button>
-                                <button class="tab-btn btn-teacher-only" id="tab-btn-rubric" onclick="switchTab('rubric-tab', this)">📊 Ma Trận Tiêu Chí</button>
+                                <button class="tab-btn" id="tab-btn-speaking" onclick="switchTab('speaking-tab', this)">🗣️ Speaking</button>
+                                <button class="tab-btn" id="tab-btn-rubric" onclick="switchTab('rubric-tab', this)">📊 Ma Trận Tiêu Chí</button>
                                 <button class="tab-btn" id="tab-btn-summary" onclick="switchTab('summary-tab', this)">✅ Tổng Kết Điểm</button>
                             </div>
 
                             <div id="tab-contents-wrapper">
+                                <!-- TAB 1: WRITING -->
                                 <div id="writing-tab" class="tab-content active">
-                                    <div class="form-group btn-teacher-only">
+                                    <div class="form-group" id="prompt-input-container">
                                         <label>Đề Bài Writing (Prompt)</label>
                                         <input type="text" id="assign-prompt" class="form-control" placeholder="Nhập đề bài yêu cầu tại đây...">
                                     </div>
@@ -510,8 +556,8 @@
                                     
                                     <div class="form-group">
                                         <label>Bài Làm Của Học Viên</label>
-                                        <div class="btn-teacher-only" style="font-size: 0.85em; color: #64748b; margin-bottom: 8px;">(Mẹo: Bôi đen một đoạn văn bản và click vào các nút màu bên dưới để ghi chú lỗi)</div>
-                                        <div class="feedback-bar btn-teacher-only">
+                                        <div id="teacher-feedback-guide" style="font-size: 0.85em; color: #64748b; margin-bottom: 8px;">(Mẹo: Bôi đen một đoạn văn bản và click vào các nút màu bên dưới để ghi chú lỗi)</div>
+                                        <div class="feedback-bar" id="feedback-bar-container">
                                             <button class="fb-btn fb-grammar" onclick="addFeedback('Grammar', '#ef4444')">Grammar</button>
                                             <button class="fb-btn fb-vocab" onclick="addFeedback('Vocabulary', '#3b82f6')">Vocabulary</button>
                                             <button class="fb-btn fb-spelling" onclick="addFeedback('Spelling', '#f59e0b')">Spelling</button>
@@ -528,7 +574,7 @@
                                         </div>
                                     </div>
 
-                                    <div class="form-group btn-teacher-only" style="margin-top: 25px; padding: 15px; background: #e0e7ff; border-radius: 8px; border: 1px dashed #a5b4fc;">
+                                    <div class="form-group" id="ai-sample-generator-container" style="margin-top: 25px; padding: 15px; background: #e0e7ff; border-radius: 8px; border: 1px dashed #a5b4fc;">
                                         <label style="color: #4338ca; font-size: 1em;">💡 Nâng Cấp Bài Viết (AI Sample Generator)</label>
                                         <div style="font-size: 0.85em; color: #4f46e5; margin-bottom: 10px;">Sinh ra một bài viết mẫu bám sát ý tưởng của học viên nhưng đạt mức điểm Band mong muốn.</div>
                                         <div style="display: flex; gap: 10px; margin-bottom: 10px; align-items: center;">
@@ -541,7 +587,8 @@
                                     </div>
                                 </div>
 
-                                <div id="speaking-tab" class="tab-content btn-teacher-only">
+                                <!-- TAB 2: SPEAKING -->
+                                <div id="speaking-tab" class="tab-content">
                                     <div class="form-group">
                                         <label>Ghi Âm & Chuyển Đổi Hội Thoại Sang Văn Bản</label>
                                         <div class="audio-controls">
@@ -553,12 +600,13 @@
                                         <textarea id="assign-speaking-text" class="form-control" rows="10" placeholder="Nội dung hội thoại..."></textarea>
                                     </div>
                                     <div class="form-group">
-                                        <label>Nhận Xét Phân Tích</label>
+                                        <label>Nhận Xét Phân Tích Kỹ Năng Speaking</label>
                                         <textarea id="assign-speaking-feedback" class="form-control" rows="5"></textarea>
                                     </div>
                                 </div>
 
-                                <div id="rubric-tab" class="tab-content btn-teacher-only">
+                                <!-- TAB 3: RUBRIC MATRIX -->
+                                <div id="rubric-tab" class="tab-content">
                                     <div style="margin-bottom: 20px; display: flex; align-items: center; gap: 15px;">
                                         <label style="font-weight: 600; margin: 0;">Template Đánh Giá: </label>
                                         <select id="rubric-template-select" class="form-control" style="width: auto; min-width: 250px;" onchange="loadSelectedTemplate()"></select>
@@ -569,12 +617,13 @@
                                     </div>
                                 </div>
 
+                                <!-- TAB 4: SUMMARY & EXPORT -->
                                 <div id="summary-tab" class="tab-content">
                                     
-                                    <div class="form-group">
+                                    <div class="form-group" id="summary-skills-outer-container">
                                         <label style="text-transform: uppercase; color: #4f46e5; font-weight: 800;">BẢNG ĐIỂM TỔNG HỢP CÁC KỸ NĂNG</label>
                                         <div id="summary-skills-container" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; margin-bottom: 20px; background: #f8fafc; padding: 20px; border-radius: 8px; border: 1px solid var(--border-color);">
-                                            </div>
+                                        </div>
                                     </div>
                                     
                                     <div class="form-group">
@@ -604,6 +653,7 @@
                                         <textarea id="assign-overall-comment" class="form-control" rows="5" placeholder="Chưa có nhận xét..."></textarea>
                                     </div>
 
+                                    <!-- BẢNG ĐIỀU KHIỂN THEO ROLE -->
                                     <div style="margin-top: 25px; padding-top: 15px; border-top: 1px solid #eee; display: flex; gap: 10px; flex-wrap: wrap;" id="action-controls-teacher">
                                         <button class="btn btn-warning" onclick="saveAssignmentStatus('pending')">Lưu Tạm (Chưa Chấm)</button>
                                         <button class="btn btn-success" onclick="saveAssignmentStatus('graded')">✅ Đánh Dấu: Đã Chấm Hoàn Tất</button>
@@ -618,12 +668,17 @@
                                         <button class="btn btn-success" id="btn-submit-teacher" onclick="saveAssignmentStatus('pending')">🚀 Nộp Bài Lên Giáo Viên</button>
                                     </div>
 
+                                    <div style="margin-top: 25px; padding-top: 15px; border-top: 1px solid #eee; display: flex; gap: 10px; flex-wrap: wrap;" id="action-controls-admin">
+                                        <button class="btn btn-secondary" onclick="exportToPDF()">📄 In Báo Cáo PDF</button>
+                                    </div>
+
                                 </div>
                             </div> 
                         </div>
                     </div>
                 </div>
 
+                <!-- VIEW 3: RUBRICS MANAGEMENT -->
                 <div id="view-rubrics" class="app-view">
                     <div class="card">
                         <h2>Tùy Chỉnh Bộ Tiêu Chí (Rubric Templates)</h2>
@@ -644,6 +699,7 @@
                     </div>
                 </div>
 
+                <!-- VIEW 4: REPORTS & CHARTS -->
                 <div id="view-reports" class="app-view">
                     <div class="card">
                         <h2>Báo Cáo Thống Kê & Phân Tích Điểm Số</h2>
@@ -660,6 +716,7 @@
                     </div>
                 </div>
 
+                <!-- VIEW 5: CHANGE PASSWORD (STUDENT) -->
                 <div id="view-password" class="app-view">
                     <div class="card" style="max-width: 500px; margin: 40px auto;">
                         <h2>Đổi Mật Khẩu</h2>
@@ -668,6 +725,50 @@
                             <input type="password" id="new-password" class="form-control" placeholder="Nhập mật khẩu mới">
                         </div>
                         <button class="btn btn-success" onclick="changeStudentPassword()">Cập Nhật Mật Khẩu</button>
+                    </div>
+                </div>
+
+                <!-- VIEW 0: TEACHERS MANAGEMENT (ADMIN) -->
+                <div id="view-teachers" class="app-view">
+                    <div class="card">
+                        <h2>Quản Lý Giảng Viên</h2>
+                        <form id="teacher-form" onsubmit="event.preventDefault(); saveTeacher();">
+                            <input type="hidden" id="teacher-idx" value="">
+                            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px;">
+                                <div class="form-group">
+                                    <label>Tên đăng nhập (Username)</label>
+                                    <input type="text" id="tc-username" class="form-control" required placeholder="Ví dụ: gv_nguyenvana">
+                                </div>
+                                <div class="form-group">
+                                    <label>Họ và Tên</label>
+                                    <input type="text" id="tc-name" class="form-control" required placeholder="Ví dụ: Nguyễn Văn A">
+                                </div>
+                                <div class="form-group">
+                                    <label>Mật khẩu</label>
+                                    <input type="text" id="tc-password" class="form-control" required value="123456">
+                                </div>
+                            </div>
+                            <div style="margin-top: 10px;">
+                                <button type="submit" class="btn btn-success">Lưu Giảng Viên</button>
+                                <button type="button" class="btn btn-secondary" onclick="resetTeacherForm()">Tạo Mới</button>
+                            </div>
+                        </form>
+                    </div>
+
+                    <div class="card">
+                        <h3>Danh Sách Giảng Viên</h3>
+                        <table class="student-table">
+                            <thead>
+                                <tr>
+                                    <th>Username</th>
+                                    <th>Họ Tên</th>
+                                    <th>Mật Khẩu</th>
+                                    <th></th>
+                                </tr>
+                            </thead>
+                            <tbody id="teacher-list-body">
+                            </tbody>
+                        </table>
                     </div>
                 </div>
 
@@ -681,9 +782,8 @@
         const OPENAI_API_KEY = "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";
 
         let dataState = {
-            teachers: [
-                { id: "t_admin", username: "admin", password: "123", name: "Giáo Viên Quản Trị" }
-            ],
+            admins: [{ id: "admin", username: "admin", password: "123", name: "Quản Trị Viên" }],
+            teachers: [{ id: "t_gv1", username: "gv_nguyenvana", password: "123", name: "Nguyễn Văn A" }],
             students: [],
             availableCustomSkills: ['Reading', 'Listening'],
             organization: {},
@@ -715,15 +815,13 @@
 
         window.onload = function() {
             loadLocalState();
-            if(dataState.teachers === undefined) {
-                dataState.teachers = [{ id: "t_admin", username: "admin", password: "123", name: "Giáo Viên Admin" }];
-            }
+            if(dataState.admins === undefined) dataState.admins = [{ id: "admin", username: "admin", password: "123", name: "Quản Trị Viên" }];
+            if(dataState.teachers === undefined) dataState.teachers = [{ id: "t_gv1", username: "gv_nguyenvana", password: "123", name: "Nguyễn Văn A" }];
             if(!dataState.availableCustomSkills) dataState.availableCustomSkills = ['Reading', 'Listening'];
             if(!dataState.organization) dataState.organization = {};
             
-            // Normalize old data
             dataState.students.forEach(s => {
-                if(!s.teacherId) s.teacherId = "t_admin";
+                if(!s.teacherId) s.teacherId = dataState.teachers.length > 0 ? dataState.teachers[0].id : "admin";
                 if(!s.username) s.username = s.id;
                 if(!s.password) s.password = "123456";
                 let school = s.school || "Chưa có Trường";
@@ -734,13 +832,7 @@
                 if (!dataState.organization[school][dept]) dataState.organization[school][dept] = {};
                 if (!dataState.organization[school][dept][cohort]) dataState.organization[school][dept][cohort] = [];
                 if (!dataState.organization[school][dept][cohort].includes(cls)) dataState.organization[school][dept][cohort].push(cls);
-                
-                // Chuẩn hóa status bài tập cũ
-                if(s.assignments) {
-                    s.assignments.forEach(a => {
-                        if(!a.status) a.status = "graded"; // Bài cũ mặc định coi như đã chấm
-                    });
-                }
+                if(s.assignments) s.assignments.forEach(a => { if(!a.status) a.status = "graded"; });
             });
             saveLocalState();
         };
@@ -756,69 +848,64 @@
             const u = document.getElementById('login-user').value.trim();
             const p = document.getElementById('login-pass').value.trim();
             
+            let adminMatch = dataState.admins.find(x => x.username === u && x.password === p);
+            if (adminMatch) { currentUser = { role: 'admin', ...adminMatch }; postLoginSetup(); return; }
+
             let teacherMatch = dataState.teachers.find(x => x.username === u && x.password === p);
-            if (teacherMatch) {
-                currentUser = { role: 'teacher', ...teacherMatch };
-                postLoginSetup();
-                return;
-            }
+            if (teacherMatch) { currentUser = { role: 'teacher', ...teacherMatch }; postLoginSetup(); return; }
 
             let studentMatch = dataState.students.find(x => x.username === u && x.password === p);
-            if (studentMatch) {
-                currentUser = { role: 'student', ...studentMatch };
-                postLoginSetup();
-                return;
-            }
+            if (studentMatch) { currentUser = { role: 'student', ...studentMatch }; postLoginSetup(); return; }
 
             alert("Tài khoản hoặc mật khẩu không chính xác!");
         }
 
         function handleLogout() {
-            currentUser = null;
-            activeStudentIndex = null;
-            activeAssignmentIndex = null;
+            currentUser = null; activeStudentIndex = null; activeAssignmentIndex = null;
             document.getElementById('main-app').style.display = 'none';
             document.getElementById('login-view').style.display = 'flex';
-            document.getElementById('login-user').value = "";
-            document.getElementById('login-pass').value = "";
-            document.body.className = "";
+            document.getElementById('login-user').value = ""; document.getElementById('login-pass').value = "";
         }
 
         function postLoginSetup() {
             document.getElementById('login-view').style.display = 'none';
             document.getElementById('main-app').style.display = 'flex';
             document.getElementById('user-greeting').innerText = `Xin chào, ${currentUser.name || currentUser.id}`;
-            
             const sideNav = document.getElementById('side-nav');
             
-            if (currentUser.role === 'teacher') {
-                document.body.classList.remove('role-student');
+            if (currentUser.role === 'admin') {
+                sideNav.innerHTML = `
+                    <a href="#" class="nav-item active" data-view="view-teachers" onclick="switchMainView('view-teachers')">👨‍🏫 Quản Lý Giảng Viên</a>
+                    <a href="#" class="nav-item" data-view="view-students" onclick="switchMainView('view-students')">👥 Quản Lý Học Viên</a>
+                    <a href="#" class="nav-item" data-view="view-rubrics" onclick="switchMainView('view-rubrics')">📋 Quản Lý Tiêu Chí</a>
+                    <a href="#" class="nav-item" data-view="view-reports" onclick="switchMainView('view-reports')">📈 Báo Cáo Thống Kê</a>
+                `;
+                document.getElementById('teacher-select-group').style.display = 'block';
+                populateSelect(document.getElementById('std-teacher'), dataState.teachers.map(t => t.name));
+                renderTeacherList(); renderOrgDropdowns('none'); renderStudentList(); initTemplateSelect();
+                switchMainView('view-teachers');
+            } else if (currentUser.role === 'teacher') {
                 sideNav.innerHTML = `
                     <a href="#" class="nav-item active" data-view="view-students" onclick="switchMainView('view-students')">👥 Quản Lý Học Viên</a>
                     <a href="#" class="nav-item" data-view="view-grading" onclick="switchMainView('view-grading')">📝 Bài Tập & Chấm Điểm</a>
                     <a href="#" class="nav-item" data-view="view-rubrics" onclick="switchMainView('view-rubrics')">📋 Quản Lý Tiêu Chí</a>
                     <a href="#" class="nav-item" data-view="view-reports" onclick="switchMainView('view-reports')">📈 Báo Cáo Thống Kê</a>
                 `;
-                renderOrgDropdowns('none');
-                renderStudentList();
-                initTemplateSelect();
-                setupTooltipListeners();
+                document.getElementById('teacher-select-group').style.display = 'none';
+                renderOrgDropdowns('none'); renderStudentList(); initTemplateSelect(); setupTooltipListeners();
                 switchMainView('view-students');
             } else {
-                document.body.classList.add('role-student');
                 sideNav.innerHTML = `
                     <a href="#" class="nav-item active" data-view="view-grading" onclick="switchMainView('view-grading')">📝 Nộp Bài & Lịch Sử</a>
                     <a href="#" class="nav-item" data-view="view-password" onclick="switchMainView('view-password')">🔒 Đổi Mật Khẩu</a>
                 `;
-                // Tự động gán activeStudentIndex cho học viên này
                 activeStudentIndex = dataState.students.findIndex(s => s.id === currentUser.id);
-                initTemplateSelect();
-                setupTooltipListeners();
+                initTemplateSelect(); setupTooltipListeners();
                 
-                // Giả lập chọn sinh viên để mở Header bài tập
                 document.getElementById('workspace-header').style.display = 'block';
-                document.getElementById('active-student-title').innerText = `Hồ sơ học tập: ${currentUser.name} (${currentUser.id})`;
+                document.getElementById('active-student-title').innerText = `Hồ sơ học tập: ${currentUser.name}`;
                 document.getElementById('student-detail-info').innerText = `${currentUser.school||''} | ${currentUser.className||''}`;
+                document.getElementById('btn-create-assign').style.display = 'inline-block';
                 
                 renderAssignmentList();
                 document.getElementById('assignment-workspace').style.display = 'none';
@@ -826,7 +913,6 @@
             }
         }
 
-        // UTILS
         function showLoading(text) {
             document.getElementById('loading-message').innerText = text || "Đang xử lý...";
             document.getElementById('loading-overlay').classList.add('active');
@@ -844,7 +930,7 @@
             if (viewId === 'view-rubrics') refreshModalTemplateSelect();
             else if (viewId === 'view-reports') generateReport();
             else if (viewId === 'view-grading') {
-                if(currentUser.role === 'teacher' && activeStudentIndex === null) {
+                if((currentUser.role === 'teacher' || currentUser.role === 'admin') && activeStudentIndex === null) {
                     document.getElementById('no-student-selected-msg').style.display = 'block';
                     document.getElementById('workspace-header').style.display = 'none';
                     document.getElementById('assignment-workspace').style.display = 'none';
@@ -855,24 +941,61 @@
             }
         }
 
-        // --- ORG & STUDENT MGMT (TEACHER) ---
-        function populateSelect(selectEl, optionsArray) {
-            const currentVal = selectEl.value;
-            selectEl.innerHTML = '';
-            optionsArray.forEach(opt => {
-                let option = document.createElement('option'); option.value = opt; option.innerText = opt;
-                selectEl.appendChild(option);
+        // --- ADMIN TEACHER MGMT ---
+        function renderTeacherList() {
+            const tbody = document.getElementById('teacher-list-body');
+            tbody.innerHTML = '';
+            dataState.teachers.forEach((t, index) => {
+                const tr = document.createElement('tr');
+                tr.onclick = () => selectTeacher(index);
+                tr.innerHTML = `<td>${t.username}</td><td>${t.name}</td><td>${t.password}</td>
+                <td><span style="color:var(--danger-color);font-weight:bold;cursor:pointer;font-size:1.2em;" onclick="event.stopPropagation(); deleteTeacher(${index});">✕</span></td>`;
+                tbody.appendChild(tr);
             });
-            if (optionsArray.includes(currentVal)) selectEl.value = currentVal;
-            else if (optionsArray.length > 0) selectEl.value = optionsArray[0];
+        }
+        function saveTeacher() {
+            const idx = document.getElementById('teacher-idx').value;
+            const tData = {
+                id: document.getElementById('tc-username').value,
+                username: document.getElementById('tc-username').value,
+                name: document.getElementById('tc-name').value,
+                password: document.getElementById('tc-password').value
+            };
+            if(idx === "") dataState.teachers.push(tData);
+            else dataState.teachers[idx] = tData;
+            saveLocalState(); renderTeacherList(); resetTeacherForm();
+        }
+        function selectTeacher(index) {
+            document.getElementById('teacher-idx').value = index;
+            const t = dataState.teachers[index];
+            document.getElementById('tc-username').value = t.username;
+            document.getElementById('tc-name').value = t.name;
+            document.getElementById('tc-password').value = t.password;
+        }
+        function deleteTeacher(index) {
+            if(confirm("Xóa giảng viên này? Các học viên của GV này sẽ không có người phụ trách.")) {
+                dataState.teachers.splice(index, 1);
+                saveLocalState(); renderTeacherList(); resetTeacherForm();
+            }
+        }
+        function resetTeacherForm() {
+            document.getElementById('teacher-idx').value = "";
+            document.getElementById('tc-username').value = "";
+            document.getElementById('tc-name').value = "";
+            document.getElementById('tc-password').value = "123456";
+        }
+
+        // --- HIERARCHY ORG LOGIC ---
+        function populateSelect(selectEl, optionsArray) {
+            const currentVal = selectEl.value; selectEl.innerHTML = '';
+            optionsArray.forEach(opt => { let option = document.createElement('option'); option.value = opt; option.innerText = opt; selectEl.appendChild(option); });
+            if (optionsArray.includes(currentVal)) selectEl.value = currentVal; else if (optionsArray.length > 0) selectEl.value = optionsArray[0];
         }
 
         function renderOrgDropdowns(levelChanged = 'none') {
             const org = dataState.organization;
-            const schoolSel = document.getElementById('std-school');
-            const deptSel = document.getElementById('std-department');
-            const cohortSel = document.getElementById('std-cohort');
-            const classSel = document.getElementById('std-class');
+            const schoolSel = document.getElementById('std-school'); const deptSel = document.getElementById('std-department');
+            const cohortSel = document.getElementById('std-cohort'); const classSel = document.getElementById('std-class');
             
             let schools = Object.keys(org);
             if(schools.length === 0) { schools = ["Đại học Mặc Định"]; org["Đại học Mặc Định"] = { "Khoa Mặc Định": { "Khóa Mặc Định": ["Lớp Mặc Định"] } }; }
@@ -903,12 +1026,8 @@
         function addOrgItem(level) {
             let name = prompt("Nhập tên mới:");
             if(!name || !name.trim()) return;
-            name = name.trim();
-            const org = dataState.organization;
-            const school = document.getElementById('std-school').value;
-            const dept = document.getElementById('std-department').value;
-            const cohort = document.getElementById('std-cohort').value;
-            
+            name = name.trim(); const org = dataState.organization;
+            const school = document.getElementById('std-school').value; const dept = document.getElementById('std-department').value; const cohort = document.getElementById('std-cohort').value;
             if(level === 'school') { if(!org[name]) org[name] = {}; document.getElementById('std-school').innerHTML += `<option value="${name}">${name}</option>`; document.getElementById('std-school').value = name; handleOrgChange('school'); } 
             else if (level === 'dept') { if(!org[school][name]) org[school][name] = {}; document.getElementById('std-department').innerHTML += `<option value="${name}">${name}</option>`; document.getElementById('std-department').value = name; handleOrgChange('dept'); } 
             else if (level === 'cohort') { if(!org[school][dept][name]) org[school][dept][name] = []; document.getElementById('std-cohort').innerHTML += `<option value="${name}">${name}</option>`; document.getElementById('std-cohort').value = name; handleOrgChange('cohort'); } 
@@ -917,11 +1036,8 @@
         }
 
         function deleteOrgItem(level) {
-            const org = dataState.organization;
-            const school = document.getElementById('std-school').value;
-            const dept = document.getElementById('std-department').value;
-            const cohort = document.getElementById('std-cohort').value;
-            const cls = document.getElementById('std-class').value;
+            const org = dataState.organization; const school = document.getElementById('std-school').value;
+            const dept = document.getElementById('std-department').value; const cohort = document.getElementById('std-cohort').value; const cls = document.getElementById('std-class').value;
 
             if (level === 'class') {
                 if (!cls) return;
@@ -944,46 +1060,68 @@
             saveLocalState();
         }
 
+        // --- STUDENT MGMT ---
         function renderStudentList() {
             const tbody = document.getElementById('student-list-body');
             tbody.innerHTML = '';
             const searchInput = document.getElementById('search-student');
             const searchTerm = searchInput ? searchInput.value.toLowerCase() : '';
             
-            dataState.students.filter(s => s.teacherId === currentUser.id).forEach((student) => {
+            let studentsToRender = dataState.students;
+            if (currentUser.role === 'teacher') studentsToRender = dataState.students.filter(s => s.teacherId === currentUser.id);
+
+            studentsToRender.forEach((student) => {
                 const globalIndex = dataState.students.indexOf(student);
                 if (searchTerm) {
                     const matchName = student.name && student.name.toLowerCase().includes(searchTerm);
                     const matchId = student.id && student.id.toLowerCase().includes(searchTerm);
                     if (!matchName && !matchId) return;
                 }
-
                 const tr = document.createElement('tr');
                 if (globalIndex === activeStudentIndex) tr.className = 'selected-student';
                 tr.onclick = () => selectStudent(globalIndex);
+                
+                let gvText = "";
+                if(currentUser.role === 'admin') {
+                    let gv = dataState.teachers.find(t => t.id === student.teacherId);
+                    gvText = `<td>${gv ? gv.name : 'N/A'}</td>`;
+                }
+
                 tr.innerHTML = `
                     <td><strong>${student.id}</strong></td>
                     <td>${student.name}</td>
                     <td>${student.school || '-'} <br> <small>${student.department || '-'}</small></td>
                     <td>${student.cohort || '-'} <br> <small>${student.className || '-'}</small></td>
+                    ${gvText}
                     <td><span style="color:var(--danger-color);font-weight:bold;cursor:pointer;font-size:1.2em;" onclick="event.stopPropagation(); deleteStudent(${globalIndex});">✕</span></td>
                 `;
                 tbody.appendChild(tr);
             });
+
+            if(currentUser.role !== 'admin') {
+                const thGv = document.getElementById('th-gv-col');
+                if(thGv) thGv.style.display = 'none';
+            }
         }
 
         function saveStudent() {
             const idx = document.getElementById('student-idx').value;
+            let tId = currentUser.id;
+            if(currentUser.role === 'admin') {
+                const tName = document.getElementById('std-teacher').value;
+                const tObj = dataState.teachers.find(t => t.name === tName);
+                if(tObj) tId = tObj.id;
+            }
+
             const studentData = {
-                teacherId: currentUser.id,
+                teacherId: tId,
                 school: document.getElementById('std-school').value,
                 department: document.getElementById('std-department').value,
                 cohort: document.getElementById('std-cohort').value,
                 className: document.getElementById('std-class').value,
-                id: document.getElementById('std-id').value, // This is username
+                id: document.getElementById('std-id').value,
                 username: document.getElementById('std-id').value,
                 name: document.getElementById('std-name').value,
-                dob: document.getElementById('std-dob').value,
                 level: document.getElementById('std-level').value,
                 assignments: idx !== "" ? dataState.students[idx].assignments : [],
                 password: idx !== "" ? dataState.students[idx].password : "123456"
@@ -992,10 +1130,8 @@
             if (idx === "") dataState.students.push(studentData);
             else dataState.students[idx] = studentData;
 
-            saveLocalState();
-            renderStudentList();
-            resetStudentForm();
-            alert("Đã lưu thông tin học viên! Mật khẩu mặc định là 123456");
+            saveLocalState(); renderStudentList(); resetStudentForm();
+            alert("Đã lưu thông tin học viên! Mật khẩu mặc định: 123456");
         }
 
         function selectStudent(index) {
@@ -1005,7 +1141,7 @@
             
             document.getElementById('workspace-header').style.display = 'block';
             document.getElementById('active-student-title').innerText = `Học viên: ${student.name} (${student.id})`;
-            document.getElementById('student-detail-info').innerText = `${student.school || '-'}  |  Khoa: ${student.department || '-'}  |  Khóa: ${student.cohort}  |  Lớp: ${student.className}  |  Level: ${student.level}`;
+            document.getElementById('student-detail-info').innerText = `${student.school || '-'} | Khoa: ${student.department || '-'} | Khóa: ${student.cohort} | Lớp: ${student.className} | Level: ${student.level}`;
             
             document.getElementById('student-idx').value = index;
             if(student.school) document.getElementById('std-school').value = student.school; handleOrgChange('school');
@@ -1015,8 +1151,13 @@
 
             document.getElementById('std-id').value = student.id;
             document.getElementById('std-name').value = student.name;
-            document.getElementById('std-dob').value = student.dob;
             document.getElementById('std-level').value = student.level;
+            
+            if(currentUser.role === 'admin') {
+                let gv = dataState.teachers.find(t => t.id === student.teacherId);
+                if(gv) document.getElementById('std-teacher').value = gv.name;
+            }
+
             document.getElementById('btn-save-student').innerText = "Cập Nhật Học Viên";
 
             renderAssignmentList();
@@ -1028,18 +1169,13 @@
             if (confirm("Xác nhận xóa học viên này cùng toàn bộ lịch sử bài tập?")) {
                 dataState.students.splice(index, 1);
                 if (activeStudentIndex === index) activeStudentIndex = null;
-                saveLocalState();
-                renderStudentList();
-                resetStudentForm();
+                saveLocalState(); renderStudentList(); resetStudentForm();
             }
         }
 
         function resetStudentForm() {
-            document.getElementById('student-idx').value = "";
-            document.getElementById('std-id').value = "";
-            document.getElementById('std-name').value = "";
-            document.getElementById('std-dob').value = "";
-            document.getElementById('std-level').value = "";
+            document.getElementById('student-idx').value = ""; document.getElementById('std-id').value = "";
+            document.getElementById('std-name').value = ""; document.getElementById('std-level').value = "";
             document.getElementById('btn-save-student').innerText = "Thêm Học Viên Mới";
         }
 
@@ -1048,9 +1184,7 @@
             if(np.trim().length < 3) { alert("Mật khẩu phải từ 3 ký tự!"); return; }
             dataState.students[activeStudentIndex].password = np.trim();
             currentUser.password = np.trim();
-            saveLocalState();
-            alert("Đổi mật khẩu thành công!");
-            document.getElementById('new-password').value = "";
+            saveLocalState(); alert("Đổi mật khẩu thành công!"); document.getElementById('new-password').value = "";
         }
 
         // --- ASSIGNMENTS ---
@@ -1064,7 +1198,6 @@
                 return;
             }
 
-            // Map status to badges
             const statusMap = {
                 'draft': '<span class="status-badge status-draft">Lưu Nháp</span>',
                 'pending': '<span class="status-badge status-pending">Chưa Chấm</span>',
@@ -1081,11 +1214,8 @@
                 let skillsText = [];
                 if (assign.hasWriting !== false && assign.scoreWriting) skillsText.push(`W: ${assign.scoreWriting}`);
                 if (assign.hasSpeaking !== false && assign.scoreSpeaking) skillsText.push(`S: ${assign.scoreSpeaking}`);
-                
                 if (assign.dynamicScoresObj) {
-                    for (let k in assign.dynamicScoresObj) {
-                        if (assign.dynamicScoresObj[k].score) skillsText.push(`${k}: ${assign.dynamicScoresObj[k].score}`);
-                    }
+                    for (let k in assign.dynamicScoresObj) { if (assign.dynamicScoresObj[k].score) skillsText.push(`${k}: ${assign.dynamicScoresObj[k].score}`); }
                 }
 
                 const titleText = assign.title || assign.prompt || 'Bài Tập Chưa Đặt Tên';
@@ -1094,11 +1224,7 @@
                 
                 item.innerHTML = `
                     <div style="display:flex; justify-content:space-between; align-items:flex-start;">
-                        <div>
-                            <strong style="color: var(--primary-color); font-size:1.1em;">${titleText}</strong>
-                            ${badge}
-                            ${dateText}
-                        </div>
+                        <div><strong style="color: var(--primary-color); font-size:1.1em;">${titleText}</strong> ${badge} ${dateText}</div>
                         <span style="font-weight:bold; color:var(--danger-color); font-size:1.15em;">Tổng: ${assign.totalScore || 'N/A'}</span>
                     </div>
                     <small style="color:#64748b; margin-top:8px; display:block;">${skillsText.join(' &nbsp;|&nbsp; ') || 'Chưa có điểm'}</small>
@@ -1124,31 +1250,25 @@
             if (skill && skill.trim() !== "") {
                 const cleanSkill = skill.trim();
                 if (!dataState.availableCustomSkills.includes(cleanSkill)) {
-                    dataState.availableCustomSkills.push(cleanSkill);
-                    saveLocalState();
+                    dataState.availableCustomSkills.push(cleanSkill); saveLocalState();
                 }
-                
                 let currentlyChecked = [];
                 if(document.getElementById('chk-writing') && document.getElementById('chk-writing').checked) currentlyChecked.push('writing');
                 if(document.getElementById('chk-speaking') && document.getElementById('chk-speaking').checked) currentlyChecked.push('speaking');
                 document.querySelectorAll('.chk-custom-skill:checked').forEach(cb => currentlyChecked.push(cb.value));
                 if (!currentlyChecked.includes(cleanSkill)) currentlyChecked.push(cleanSkill);
-
-                renderSkillCheckboxes(currentlyChecked);
-                updateTabsDisplay();
+                renderSkillCheckboxes(currentlyChecked); updateTabsDisplay();
             }
         }
 
         function updateTabsDisplay() {
-            const hasWriting = document.getElementById('chk-writing').checked;
-            const hasSpeaking = document.getElementById('chk-speaking').checked;
+            const hasWriting = document.getElementById('chk-writing') ? document.getElementById('chk-writing').checked : true;
+            const hasSpeaking = document.getElementById('chk-speaking') ? document.getElementById('chk-speaking').checked : false;
             
             document.getElementById('tab-btn-writing').style.display = hasWriting ? 'inline-block' : 'none';
-            // Only teacher sees Rubrics tab
-            if(currentUser.role === 'teacher') document.getElementById('tab-btn-rubric').style.display = hasWriting ? 'inline-block' : 'none';
+            document.getElementById('tab-btn-rubric').style.display = hasWriting ? 'inline-block' : 'none'; // Visible for student too
             
-            // Student shouldn't see speaking tab as requested (Nộp bài chỉ có Writing và Tổng kết)
-            if(currentUser.role === 'teacher') {
+            if(currentUser.role === 'teacher' || currentUser.role === 'admin') {
                 document.getElementById('tab-btn-speaking').style.display = hasSpeaking ? 'inline-block' : 'none';
             } else {
                 document.getElementById('tab-btn-speaking').style.display = 'none';
@@ -1156,72 +1276,46 @@
             
             const summaryContainer = document.getElementById('summary-skills-container');
             summaryContainer.innerHTML = ''; 
-            
             const readOnlyStr = currentUser.role === 'student' ? 'readonly style="background:#f1f5f9; cursor:not-allowed;"' : '';
 
             if(hasWriting) {
                 const oldVal = document.getElementById('score-writing') ? document.getElementById('score-writing').value : '';
                 summaryContainer.innerHTML += `
-                    <div>
-                        <label style="font-weight:600; color:#475569; display:block; margin-bottom:5px;">Điểm Writing</label>
-                        <input type="number" step="0.1" id="score-writing" class="form-control score-input" placeholder="0.0" value="${oldVal}" onchange="calculateTotalScore()" onkeyup="calculateTotalScore()" ${readOnlyStr}>
-                    </div>`;
+                    <div><label style="font-weight:600; color:#475569; display:block; margin-bottom:5px;">Điểm Writing</label>
+                    <input type="number" step="0.1" id="score-writing" class="form-control score-input" placeholder="0.0" value="${oldVal}" onchange="calculateTotalScore()" onkeyup="calculateTotalScore()" ${readOnlyStr}></div>`;
             }
-            if(hasSpeaking && currentUser.role === 'teacher') { // Student doesn't see speaking score input directly if tab is hidden
+            if(hasSpeaking && (currentUser.role === 'teacher' || currentUser.role === 'admin')) {
                 const oldVal = document.getElementById('score-speaking') ? document.getElementById('score-speaking').value : '';
                 summaryContainer.innerHTML += `
-                    <div>
-                        <label style="font-weight:600; color:#475569; display:block; margin-bottom:5px;">Điểm Speaking</label>
-                        <input type="number" step="0.1" id="score-speaking" class="form-control score-input" placeholder="0.0" value="${oldVal}" onchange="calculateTotalScore()" onkeyup="calculateTotalScore()" ${readOnlyStr}>
-                    </div>`;
+                    <div><label style="font-weight:600; color:#475569; display:block; margin-bottom:5px;">Điểm Speaking</label>
+                    <input type="number" step="0.1" id="score-speaking" class="form-control score-input" placeholder="0.0" value="${oldVal}" onchange="calculateTotalScore()" onkeyup="calculateTotalScore()" ${readOnlyStr}></div>`;
             }
 
             const customCheckboxes = document.querySelectorAll('.chk-custom-skill');
             customCheckboxes.forEach(cb => {
-                const skill = cb.value;
-                const safeId = encodeURIComponent(skill).replace(/%/g, '');
-                const tabId = `custom-tab-${safeId}`;
-                const btnId = `tab-btn-${safeId}`;
-                
-                let btn = document.getElementById(btnId);
-                let tab = document.getElementById(tabId);
+                const skill = cb.value; const safeId = encodeURIComponent(skill).replace(/%/g, ''); const tabId = `custom-tab-${safeId}`; const btnId = `tab-btn-${safeId}`;
+                let btn = document.getElementById(btnId); let tab = document.getElementById(tabId);
                 
                 if (cb.checked) {
                     if (!btn) {
-                        btn = document.createElement('button');
-                        btn.className = `tab-btn custom-tab-btn ${currentUser.role === 'student' ? 'btn-teacher-only' : ''}`;
-                        btn.id = btnId;
-                        btn.innerText = `🎯 ${skill}`;
+                        btn = document.createElement('button'); btn.className = 'tab-btn custom-tab-btn'; btn.id = btnId; btn.innerText = `🎯 ${skill}`;
                         btn.onclick = function() { switchTab(tabId, this); };
+                        const summaryBtn = document.getElementById('tab-btn-summary'); summaryBtn.parentNode.insertBefore(btn, summaryBtn);
                         
-                        const summaryBtn = document.getElementById('tab-btn-summary');
-                        summaryBtn.parentNode.insertBefore(btn, summaryBtn);
-                        
-                        tab = document.createElement('div');
-                        tab.className = 'tab-content custom-tab-content';
-                        tab.id = tabId;
-                        tab.setAttribute('data-skill', skill);
+                        tab = document.createElement('div'); tab.className = 'tab-content custom-tab-content'; tab.id = tabId; tab.setAttribute('data-skill', skill);
                         tab.innerHTML = `
-                            <div class="form-group">
-                                <label>Tiêu đề / Đề bài phần ${skill}</label>
-                                <input type="text" class="form-control custom-skill-title" placeholder="Nhập tiêu đề hoặc mã đề...">
-                            </div>
-                            <div class="form-group">
-                                <label>Nhận xét chi tiết</label>
-                                <textarea class="form-control custom-skill-fb" rows="6" placeholder="Nhập nhận xét đánh giá kỹ năng này..."></textarea>
-                            </div>
+                            <div class="form-group"><label>Tiêu đề / Đề bài phần ${skill}</label><input type="text" class="form-control custom-skill-title" placeholder="Nhập tiêu đề hoặc mã đề..."></div>
+                            <div class="form-group"><label>Nhận xét chi tiết</label><textarea class="form-control custom-skill-fb" rows="6"></textarea></div>
                         `;
-                        const summaryTab = document.getElementById('summary-tab');
-                        summaryTab.parentNode.insertBefore(tab, summaryTab);
+                        const summaryTab = document.getElementById('summary-tab'); summaryTab.parentNode.insertBefore(tab, summaryTab);
                     }
-                    if(currentUser.role === 'teacher') btn.style.display = 'inline-block';
+                    if(currentUser.role === 'teacher' || currentUser.role === 'admin') btn.style.display = 'inline-block';
+                    else btn.style.display = 'none'; // Hide custom tabs for students
                     
                     const oldVal = document.getElementById(`score-${safeId}`) ? document.getElementById(`score-${safeId}`).value : '';
                     summaryContainer.innerHTML += `
-                        <div>
-                            <label style="font-weight:600; color:#475569; display:block; margin-bottom:5px;">Điểm ${skill}</label>
-                            <input type="number" step="0.1" id="score-${safeId}" class="form-control score-input" data-custom-skill="${skill}" placeholder="0.0" value="${oldVal}" onchange="calculateTotalScore()" onkeyup="calculateTotalScore()" ${readOnlyStr}>
-                        </div>`;
+                        <div><label style="font-weight:600; color:#475569; display:block; margin-bottom:5px;">Điểm ${skill}</label>
+                        <input type="number" step="0.1" id="score-${safeId}" class="form-control score-input" data-custom-skill="${skill}" placeholder="0.0" value="${oldVal}" onchange="calculateTotalScore()" onkeyup="calculateTotalScore()" ${readOnlyStr}></div>`;
                 } else {
                     if (btn) btn.style.display = 'none';
                 }
@@ -1229,68 +1323,63 @@
             
             document.getElementById('summary-rubric-container').style.display = hasWriting ? 'block' : 'none';
             calculateTotalScore();
-            
             let activeBtn = document.querySelector('.tab-btn.active');
-            if (activeBtn && activeBtn.style.display === 'none') {
-                switchTab('summary-tab', document.getElementById('tab-btn-summary'));
-            }
+            if (activeBtn && activeBtn.style.display === 'none') switchTab('summary-tab', document.getElementById('tab-btn-summary'));
 
-            // Apply read-only for students general
             if(currentUser.role === 'student') {
                 document.getElementById('assign-overall-comment').readOnly = true;
                 document.getElementById('assign-prompt').style.display = 'none';
                 document.getElementById('student-prompt-display').style.display = 'block';
                 document.getElementById('student-prompt-display').innerText = `Đề bài: ${document.getElementById('assign-prompt').value || 'Tự do'}`;
+                
+                const sampleGen = document.getElementById('ai-sample-generator-container');
+                if (sampleGen) sampleGen.style.display = 'none';
+                const fbBar = document.querySelector('.feedback-bar');
+                if (fbBar) fbBar.style.display = 'none';
+                document.getElementById('assignment-meta-box-container').style.display = 'none';
             } else {
                 document.getElementById('assign-overall-comment').readOnly = false;
                 document.getElementById('assign-prompt').style.display = 'block';
                 document.getElementById('student-prompt-display').style.display = 'none';
+                
+                const sampleGen = document.getElementById('ai-sample-generator-container');
+                if (sampleGen) sampleGen.style.display = 'block';
+                const fbBar = document.querySelector('.feedback-bar');
+                if (fbBar) fbBar.style.display = 'flex';
+                document.getElementById('assignment-meta-box-container').style.display = 'block';
             }
         }
 
         function configureWorkspaceState(status) {
             const isStudent = currentUser.role === 'student';
             const isTeacher = currentUser.role === 'teacher';
+            const isAdmin = currentUser.role === 'admin';
             
             const editor = document.getElementById('assign-writing-content');
             const aiBtn = document.getElementById('btn-ai-grade-writing');
             
-            if(isTeacher) {
-                editor.setAttribute("contenteditable", "true");
-                document.getElementById('action-controls-teacher').style.display = 'flex';
-                document.getElementById('action-controls-student').style.display = 'none';
-                document.getElementById('btn-delete-assign').style.display = activeAssignmentIndex !== null ? 'inline-block' : 'none';
+            document.getElementById('action-controls-teacher').style.display = isTeacher ? 'flex' : 'none';
+            document.getElementById('action-controls-student').style.display = isStudent ? 'flex' : 'none';
+            document.getElementById('action-controls-admin').style.display = isAdmin ? 'flex' : 'none'; 
+
+            if(isTeacher || isAdmin) {
+                editor.setAttribute("contenteditable", isTeacher ? "true" : "false"); 
+                document.getElementById('btn-delete-assign').style.display = (activeAssignmentIndex !== null && isTeacher) ? 'inline-block' : 'none';
+                aiBtn.style.display = isTeacher ? 'inline-block' : 'none';
             } else if (isStudent) {
-                document.getElementById('action-controls-teacher').style.display = 'none';
-                document.getElementById('action-controls-student').style.display = 'flex';
-                
-                // Student can edit if draft, rejected, or creating new
-                if (status === 'draft' || status === 'rejected' || status === '') {
+                if (status === 'draft' || status === 'rejected' || status === '' || status === 'ai_graded' || status === undefined) {
                     editor.setAttribute("contenteditable", "true");
                     aiBtn.style.display = 'inline-block';
                     document.getElementById('btn-save-draft').style.display = 'inline-block';
                     document.getElementById('btn-submit-teacher').style.display = 'inline-block';
                 } else {
-                    // Pending, Graded, AI_graded
                     editor.setAttribute("contenteditable", "false");
                     aiBtn.style.display = 'none';
-                    if (status === 'ai_graded') {
-                        // AI graded -> Can still submit to teacher, but maybe let them edit? Prompt says AI Graded can be edited? 
-                        // Prompt: "học viên có thể sử dụng AI để tự chấm... Chỉ khi giáo viên update thì mới đổi sang Đã Chấm". 
-                        // I will let student edit if AI graded, so they can refine it.
-                        editor.setAttribute("contenteditable", "true");
-                        aiBtn.style.display = 'inline-block';
-                        document.getElementById('btn-save-draft').style.display = 'inline-block';
-                        document.getElementById('btn-submit-teacher').style.display = 'inline-block';
-                    } else {
-                        // Pending or Graded -> Lock
-                        document.getElementById('btn-save-draft').style.display = 'none';
-                        document.getElementById('btn-submit-teacher').style.display = 'none';
-                    }
+                    document.getElementById('btn-save-draft').style.display = 'none';
+                    document.getElementById('btn-submit-teacher').style.display = 'none';
                 }
             }
 
-            // Populate Student Info Block
             if(isStudent) {
                 document.getElementById('student-assignment-info').style.display = 'block';
                 document.getElementById('display-assign-title').innerText = document.getElementById('assign-title').value || "Bài Tập Mới";
@@ -1305,33 +1394,23 @@
             activeAssignmentIndex = null;
             document.getElementById('assignment-workspace').style.display = 'block';
             
-            document.getElementById('assign-title').value = "";
-            document.getElementById('assign-desc').value = "";
-            document.getElementById('assign-prompt').value = "";
-            document.getElementById('assign-writing-content').innerHTML = "";
-            document.getElementById('assign-speaking-text').value = "";
-            document.getElementById('assign-speaking-feedback').value = "";
-            document.getElementById('assign-overall-comment').value = "";
-            document.getElementById('total-score-val').innerText = "0.0";
-            document.getElementById('sum-score-val').innerText = "(Tổng cộng: 0.0)";
-            document.getElementById('summary-rubric-scores').innerHTML = '<i>Chưa có thông tin (hãy chọn bên tab Tiêu Chí)</i>';
+            document.getElementById('assign-title').value = ""; document.getElementById('assign-desc').value = ""; document.getElementById('assign-prompt').value = "";
+            document.getElementById('assign-writing-content').innerHTML = ""; document.getElementById('assign-speaking-text').value = "";
+            document.getElementById('assign-speaking-feedback').value = ""; document.getElementById('assign-overall-comment').value = "";
+            document.getElementById('total-score-val').innerText = "0.0"; document.getElementById('sum-score-val').innerText = "(Tổng cộng: 0.0)";
+            document.getElementById('summary-rubric-scores').innerHTML = '<i>Chưa có thông tin</i>';
             document.getElementById('assign-sample-essay').value = "";
             if(document.getElementById('target-band')) document.getElementById('target-band').value = "";
             
-            const now = new Date();
-            now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
+            const now = new Date(); now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
             document.getElementById('assign-date').value = now.toISOString().slice(0,16);
+            if(document.getElementById('btn-delete-assign')) document.getElementById('btn-delete-assign').style.display = 'none';
 
             renderSkillCheckboxes(['writing', 'speaking']);
-            
-            document.querySelectorAll('.custom-tab-content').forEach(tab => {
-                tab.querySelector('.custom-skill-title').value = "";
-                tab.querySelector('.custom-skill-fb').value = "";
-            });
+            document.querySelectorAll('.custom-tab-content').forEach(tab => { tab.querySelector('.custom-skill-title').value = ""; tab.querySelector('.custom-skill-fb').value = ""; });
             
             updateTabsDisplay();
-            selectedRubricScores = {};
-            loadSelectedTemplate();
+            selectedRubricScores = {}; loadSelectedTemplate();
             switchTab('writing-tab', document.getElementById('tab-btn-writing'));
             configureWorkspaceState('');
         }
@@ -1341,54 +1420,32 @@
             const assign = dataState.students[activeStudentIndex].assignments[index];
             
             document.getElementById('assignment-workspace').style.display = 'block';
-            
             document.getElementById('assign-title').value = assign.title || assign.prompt || "";
-            document.getElementById('assign-desc').value = assign.desc || "";
-            document.getElementById('assign-date').value = assign.date || "";
-            document.getElementById('assign-prompt').value = assign.prompt || "";
-            document.getElementById('assign-writing-content').innerHTML = assign.writingContent || "";
-            document.getElementById('assign-speaking-text').value = assign.speakingText || "";
-            document.getElementById('assign-speaking-feedback').value = assign.speakingFeedback || "";
-            document.getElementById('assign-overall-comment').value = assign.overallComment || "";
-            document.getElementById('assign-sample-essay').value = assign.sampleEssay || "";
+            document.getElementById('assign-desc').value = assign.desc || ""; document.getElementById('assign-date').value = assign.date || "";
+            document.getElementById('assign-prompt').value = assign.prompt || ""; document.getElementById('assign-writing-content').innerHTML = assign.writingContent || "";
+            document.getElementById('assign-speaking-text').value = assign.speakingText || ""; document.getElementById('assign-speaking-feedback').value = assign.speakingFeedback || "";
+            document.getElementById('assign-overall-comment').value = assign.overallComment || ""; document.getElementById('assign-sample-essay').value = assign.sampleEssay || "";
             
             let checkedSkills = [];
             if(assign.hasWriting !== false) checkedSkills.push('writing');
             if(assign.hasSpeaking !== false) checkedSkills.push('speaking');
-            
             const customSkillsObj = assign.dynamicScoresObj || {};
-            Object.keys(customSkillsObj).forEach(k => {
-                if (!dataState.availableCustomSkills.includes(k)) dataState.availableCustomSkills.push(k);
-                checkedSkills.push(k);
-            });
-            renderSkillCheckboxes(checkedSkills);
-            updateTabsDisplay();
+            Object.keys(customSkillsObj).forEach(k => { if (!dataState.availableCustomSkills.includes(k)) dataState.availableCustomSkills.push(k); checkedSkills.push(k); });
+            
+            renderSkillCheckboxes(checkedSkills); updateTabsDisplay();
 
-            // Setup Scores
             if(assign.hasWriting !== false && document.getElementById('score-writing')) document.getElementById('score-writing').value = assign.scoreWriting || "";
             if(assign.hasSpeaking !== false && document.getElementById('score-speaking')) document.getElementById('score-speaking').value = assign.scoreSpeaking || "";
 
             document.querySelectorAll('.chk-custom-skill:checked').forEach(cb => {
-                const skill = cb.value;
-                const safeId = encodeURIComponent(skill).replace(/%/g, '');
-                const tabId = `custom-tab-${safeId}`;
-                const tab = document.getElementById(tabId);
-                if (tab && customSkillsObj[skill]) {
-                    tab.querySelector('.custom-skill-title').value = customSkillsObj[skill].title || "";
-                    tab.querySelector('.custom-skill-fb').value = customSkillsObj[skill].feedback || "";
-                }
-                const scoreInput = document.getElementById(`score-${safeId}`);
-                if(scoreInput && customSkillsObj[skill]) {
-                    scoreInput.value = customSkillsObj[skill].score || "";
-                }
+                const skill = cb.value; const safeId = encodeURIComponent(skill).replace(/%/g, ''); const tab = document.getElementById(`custom-tab-${safeId}`);
+                if (tab && customSkillsObj[skill]) { tab.querySelector('.custom-skill-title').value = customSkillsObj[skill].title || ""; tab.querySelector('.custom-skill-fb').value = customSkillsObj[skill].feedback || ""; }
+                const scoreInput = document.getElementById(`score-${safeId}`); if(scoreInput && customSkillsObj[skill]) { scoreInput.value = customSkillsObj[skill].score || ""; }
             });
             
             selectedRubricScores = assign.rubricScores || {};
             loadSelectedTemplate();
-            
-            if (document.getElementById('target-band')) {
-                document.getElementById('target-band').value = assign.targetBand || "";
-            }
+            if (document.getElementById('target-band')) document.getElementById('target-band').value = assign.targetBand || "";
             
             if(assign.hasWriting !== false) switchTab('writing-tab', document.getElementById('tab-btn-writing'));
             else switchTab('summary-tab', document.getElementById('tab-btn-summary'));
@@ -1397,7 +1454,6 @@
             configureWorkspaceState(assign.status || 'graded');
         }
 
-        // Modified Save function to accept Status
         function saveAssignmentStatus(statusStr) {
             if (activeStudentIndex === null) return;
             calculateTotalScore();
@@ -1408,24 +1464,22 @@
                 const cb = document.querySelector(`.chk-custom-skill[value="${skill}"]`);
                 if (cb && cb.checked) {
                     const safeId = encodeURIComponent(skill).replace(/%/g, '');
-                    dynScores[skill] = {
-                        title: tab.querySelector('.custom-skill-title').value,
-                        feedback: tab.querySelector('.custom-skill-fb').value,
-                        score: parseFloat(document.getElementById(`score-${safeId}`).value) || 0
-                    };
+                    dynScores[skill] = { title: tab.querySelector('.custom-skill-title').value, feedback: tab.querySelector('.custom-skill-fb').value, score: parseFloat(document.getElementById(`score-${safeId}`).value) || 0 };
                 }
             });
             
-            const wScoreInput = document.getElementById('score-writing');
-            const sScoreInput = document.getElementById('score-speaking');
+            const wScoreInput = document.getElementById('score-writing'); const sScoreInput = document.getElementById('score-speaking');
+            
+            const hasWriting = document.getElementById('chk-writing') ? document.getElementById('chk-writing').checked : true;
+            const hasSpeaking = document.getElementById('chk-speaking') ? document.getElementById('chk-speaking').checked : false;
 
             const assignmentData = {
                 status: statusStr,
                 title: document.getElementById('assign-title').value,
                 desc: document.getElementById('assign-desc').value,
                 date: document.getElementById('assign-date').value,
-                hasWriting: document.getElementById('chk-writing').checked,
-                hasSpeaking: document.getElementById('chk-speaking').checked,
+                hasWriting: hasWriting,
+                hasSpeaking: hasSpeaking,
                 prompt: document.getElementById('assign-prompt').value, 
                 writingContent: document.getElementById('assign-writing-content').innerHTML,
                 speakingText: document.getElementById('assign-speaking-text').value,
@@ -1450,46 +1504,21 @@
                 student.assignments[activeAssignmentIndex] = assignmentData;
             }
 
-            saveLocalState();
-            renderAssignmentList();
-            configureWorkspaceState(statusStr);
-            alert("Lưu thao tác thành công!");
+            saveLocalState(); renderAssignmentList(); configureWorkspaceState(statusStr);
+            alert("Đã lưu thao tác!");
         }
 
-        // Auto call save when using AI
         function saveActiveAssignment() {
-            // Backward compatibility alias used in summary direct save button
             let status = 'graded';
-            if(activeAssignmentIndex !== null) {
-                status = dataState.students[activeStudentIndex].assignments[activeAssignmentIndex].status || 'graded';
-            }
+            if(activeAssignmentIndex !== null) { status = dataState.students[activeStudentIndex].assignments[activeAssignmentIndex].status || 'graded'; }
             saveAssignmentStatus(status);
         }
 
         function deleteAssignment() {
             if (activeStudentIndex === null || activeAssignmentIndex === null) return;
-            if (confirm("⚠️ Bạn có chắc chắn muốn xóa bài tập này? Hành động này không thể hoàn tác.")) {
+            if (confirm("⚠️ Xóa bài tập này?")) {
                 dataState.students[activeStudentIndex].assignments.splice(activeAssignmentIndex, 1);
-                saveLocalState();
-                renderAssignmentList();
-                document.getElementById('assignment-workspace').style.display = 'none';
-                activeAssignmentIndex = null;
-                alert("Đã xóa bài tập thành công.");
-            }
-        }
-
-        function switchTab(tabId, el) {
-            const contents = document.querySelectorAll('.tab-content');
-            contents.forEach(c => c.classList.remove('active'));
-            const tabs = document.querySelectorAll('.tab-btn');
-            tabs.forEach(t => t.classList.remove('active'));
-            document.getElementById(tabId).classList.add('active');
-            el.classList.add('active');
-
-            if (tabId === 'summary-tab') {
-                calculateTotalScore();
-                renderSummaryRubric();
-                renderSummarySample();
+                saveLocalState(); renderAssignmentList(); document.getElementById('assignment-workspace').style.display = 'none'; activeAssignmentIndex = null;
             }
         }
 
@@ -1499,33 +1528,32 @@
             const sampleText = document.getElementById('assign-sample-essay').value;
             const targetBand = document.getElementById('target-band') ? document.getElementById('target-band').value : "";
             
-            if (document.getElementById('chk-writing').checked && sampleText && sampleText.trim() !== '') {
-                container.style.display = 'block';
-                content.innerHTML = `<strong>Mục tiêu: Band ${targetBand || 'Gợi ý'}</strong><br><br>${sampleText}`;
+            const hasWriting = document.getElementById('chk-writing') ? document.getElementById('chk-writing').checked : true;
+            if (hasWriting && sampleText && sampleText.trim() !== '') {
+                container.style.display = 'block'; content.innerHTML = `<strong>Mục tiêu: Band ${targetBand || 'Gợi ý'}</strong><br><br>${sampleText}`;
             } else {
-                container.style.display = 'none';
-                content.innerHTML = '';
+                container.style.display = 'none'; content.innerHTML = '';
             }
         }
 
+        function switchTab(tabId, el) {
+            document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+            document.querySelectorAll('.tab-btn').forEach(t => t.classList.remove('active'));
+            document.getElementById(tabId).classList.add('active'); el.classList.add('active');
+            if (tabId === 'summary-tab') { calculateTotalScore(); renderSummaryRubric(); renderSummarySample(); }
+        }
+
         function renderSummaryRubric() {
-            const container = document.getElementById('summary-rubric-scores');
-            if(!container) return;
+            const container = document.getElementById('summary-rubric-scores'); if(!container) return;
             const select = document.getElementById('rubric-template-select');
             const template = dataState.rubricTemplates.find(t => t.id === select.value);
+            const hasWriting = document.getElementById('chk-writing') ? document.getElementById('chk-writing').checked : true;
             
-            if (!template || !document.getElementById('chk-writing').checked) {
-                container.innerHTML = '<i>Không áp dụng rubric.</i>';
-                return;
-            }
-
+            if (!template || !hasWriting) { container.innerHTML = '<i>Không áp dụng rubric.</i>'; return; }
             let html = '<ul style="margin-left: 20px; line-height: 1.8; color: #475569;">';
             let hasScore = false;
             template.criteria.forEach(crit => {
-                if (selectedRubricScores[crit]) {
-                    html += `<li><strong>${crit}:</strong> <span style="color:var(--danger-color); font-weight:bold; font-size:1.1em; background:#fef2f2; padding:2px 6px; border-radius:4px; border:1px solid #fca5a5;">${selectedRubricScores[crit]}</span></li>`;
-                    hasScore = true;
-                }
+                if (selectedRubricScores[crit]) { html += `<li><strong>${crit}:</strong> <span style="color:var(--danger-color); font-weight:bold; font-size:1.1em; background:#fef2f2; padding:2px 6px; border-radius:4px; border:1px solid #fca5a5;">${selectedRubricScores[crit]}</span></li>`; hasScore = true; }
             });
             html += '</ul>';
             if (!hasScore) html = '<i>Chưa có tiêu chí nào được chấm điểm.</i>';
@@ -1534,10 +1562,7 @@
 
         function calculateTotalScore() {
             let total = 0; let count = 0;
-            document.querySelectorAll('#summary-skills-container .score-input').forEach(input => {
-                const val = parseFloat(input.value);
-                if (!isNaN(val)) { total += val; count++; }
-            });
+            document.querySelectorAll('#summary-skills-container .score-input').forEach(input => { const val = parseFloat(input.value); if (!isNaN(val)) { total += val; count++; } });
             if (count > 0) {
                 document.getElementById('total-score-val').innerText = (total / count).toFixed(2);
                 document.getElementById('sum-score-val').innerText = `(Tổng cộng: ${total.toFixed(2)})`;
@@ -1547,19 +1572,15 @@
             }
         }
 
+        // WRITING PLUGINS
         function addFeedback(type, color) {
             const selection = window.getSelection();
-            if (!selection.rangeCount || selection.isCollapsed) { alert("Vui lòng bôi đen một đoạn văn bản trong phần Bài Làm trước khi chọn Lỗi."); return; }
-            const comment = prompt(`Nhập nhận xét chi tiết cho lỗi [${type}]:`);
+            if (!selection.rangeCount || selection.isCollapsed) { alert("Bôi đen văn bản trước."); return; }
+            const comment = prompt(`Nhận xét cho lỗi [${type}]:`);
             if (comment === null) return; 
-
             const range = selection.getRangeAt(0);
-            const span = document.createElement('span');
-            span.className = `hl-${type.toLowerCase().replace(' ', '')}`;
-            span.setAttribute('data-comment', comment);
-            span.setAttribute('data-type', type);
-            
-            try { range.surroundContents(span); } catch(e) { alert("Không thể áp dụng nhận xét chéo qua các thẻ định dạng khác nhau."); }
+            const span = document.createElement('span'); span.className = `hl-${type.toLowerCase().replace(' ', '')}`; span.setAttribute('data-comment', comment); span.setAttribute('data-type', type);
+            try { range.surroundContents(span); } catch(e) { alert("Lỗi áp dụng nhận xét."); }
             selection.removeAllRanges();
         }
 
@@ -1568,89 +1589,67 @@
             const tooltip = document.getElementById('global-tooltip');
 
             editor.addEventListener('mouseover', function(e) {
-                const target = e.target;
-                if (target.hasAttribute('data-comment')) {
-                    const comment = target.getAttribute('data-comment');
-                    const type = target.getAttribute('data-type');
+                if (e.target.hasAttribute('data-comment')) {
+                    const comment = e.target.getAttribute('data-comment'); const type = e.target.getAttribute('data-type');
                     tooltip.innerHTML = `<strong style="color:var(--accent-color); border-bottom:1px solid #475569; display:block; padding-bottom:4px; margin-bottom:4px;">Lỗi: ${type}</strong> ${comment}<br><small style="color:#94a3b8; font-size:0.85em; margin-top:6px; display:block;">(Click vào đây để sửa/xóa)</small>`;
                     tooltip.style.display = 'block';
-                    const rect = target.getBoundingClientRect();
-                    tooltip.style.left = `${rect.left + window.scrollX}px`;
-                    tooltip.style.top = `${rect.top + window.scrollY - tooltip.offsetHeight - 12}px`;
+                    const rect = e.target.getBoundingClientRect();
+                    tooltip.style.left = `${rect.left + window.scrollX}px`; tooltip.style.top = `${rect.top + window.scrollY - tooltip.offsetHeight - 12}px`;
                 }
             });
-            editor.addEventListener('mouseout', function(e) {
-                if (e.target.hasAttribute('data-comment')) tooltip.style.display = 'none';
-            });
+
+            editor.addEventListener('mouseout', function(e) { if (e.target.hasAttribute('data-comment')) tooltip.style.display = 'none'; });
+
             editor.addEventListener('click', function(e) {
-                if(currentUser.role === 'student') return; // Học viên không được tự sửa lỗi của GV
-                const target = e.target;
-                if (target.hasAttribute('data-comment')) {
-                    const currentComment = target.getAttribute('data-comment');
-                    const type = target.getAttribute('data-type');
+                if(currentUser.role === 'student') return; 
+                if (e.target.hasAttribute('data-comment')) {
+                    const currentComment = e.target.getAttribute('data-comment'); const type = e.target.getAttribute('data-type');
                     const newComment = prompt(`Chỉnh sửa nhận xét cho lỗi [${type}]:\n(Xóa trắng và OK để GỠ BỎ lỗi)`, currentComment);
                     if (newComment === null) return; 
                     if (newComment.trim() === "") {
-                        const textNode = document.createTextNode(target.innerText);
-                        target.parentNode.replaceChild(textNode, target);
-                        tooltip.style.display = 'none';
-                    } else {
-                        target.setAttribute('data-comment', newComment);
-                        tooltip.style.display = 'none';
-                    }
+                        const textNode = document.createTextNode(e.target.innerText);
+                        e.target.parentNode.replaceChild(textNode, e.target); tooltip.style.display = 'none';
+                    } else { e.target.setAttribute('data-comment', newComment); tooltip.style.display = 'none'; }
                 }
             });
         }
 
+        // RECORDING 
         function updateTimerDisplay() {
-            const mins = String(Math.floor(recordSeconds / 60)).padStart(2, '0');
-            const secs = String(recordSeconds % 60).padStart(2, '0');
+            const mins = String(Math.floor(recordSeconds / 60)).padStart(2, '0'); const secs = String(recordSeconds % 60).padStart(2, '0');
             document.getElementById('recording-timer').innerText = `⏱ ${mins}:${secs} (Đang thu âm...)`;
         }
 
         function startRecording() {
             const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
             if (!SpeechRecognition) { alert("Trình duyệt không hỗ trợ Web Speech API."); return; }
-
-            recognition = new SpeechRecognition();
-            recognition.lang = 'en-US'; 
-            recognition.interimResults = true;
-            recognition.continuous = true;
-
+            recognition = new SpeechRecognition(); recognition.lang = 'en-US'; recognition.interimResults = true; recognition.continuous = true;
             const textarea = document.getElementById('assign-speaking-text');
-
             recognition.onresult = function(event) {
                 let resultText = "";
-                for (let i = event.resultIndex; i < event.results.length; ++i) {
-                    if (event.results[i].isFinal) resultText += event.results[i][0].transcript + " ";
-                }
+                for (let i = event.resultIndex; i < event.results.length; ++i) { if (event.results[i].isFinal) resultText += event.results[i][0].transcript + " "; }
                 if (resultText !== "") textarea.value += resultText;
             };
-
             recognition.onerror = function(event) { console.error("Lỗi:", event.error); stopRecording(); };
             recognition.start();
-            
-            document.getElementById('btn-start-record').style.display = 'none';
-            document.getElementById('btn-stop-record').style.display = 'inline-block';
+            document.getElementById('btn-start-record').style.display = 'none'; document.getElementById('btn-stop-record').style.display = 'inline-block';
             document.getElementById('recording-timer').style.display = 'inline-block';
-            recordSeconds = 0; updateTimerDisplay();
-            recordTimerInterval = setInterval(() => { recordSeconds++; updateTimerDisplay(); }, 1000);
+            recordSeconds = 0; updateTimerDisplay(); recordTimerInterval = setInterval(() => { recordSeconds++; updateTimerDisplay(); }, 1000);
         }
 
         function stopRecording() {
             if (recognition) recognition.stop();
-            document.getElementById('btn-start-record').style.display = 'inline-block';
-            document.getElementById('btn-stop-record').style.display = 'none';
+            document.getElementById('btn-start-record').style.display = 'inline-block'; document.getElementById('btn-stop-record').style.display = 'none';
             document.getElementById('recording-timer').style.display = 'none';
             if (recordTimerInterval) { clearInterval(recordTimerInterval); recordTimerInterval = null; }
         }
 
+        // RUBRIC MATRIX ENGINE
         function initTemplateSelect() {
             const select = document.getElementById('rubric-template-select');
             select.innerHTML = '';
             dataState.rubricTemplates.forEach(t => {
-                const opt = document.createElement('option');
-                opt.value = t.id; opt.innerText = t.name; select.appendChild(opt);
+                const opt = document.createElement('option'); opt.value = t.id; opt.innerText = t.name; select.appendChild(opt);
             });
         }
 
@@ -1658,59 +1657,35 @@
             const select = document.getElementById('rubric-template-select');
             const template = dataState.rubricTemplates.find(t => t.id === select.value);
             if (!template) return;
-
-            const table = document.getElementById('matrix-table-element');
-            table.innerHTML = '';
-
-            const thead = document.createElement('tr');
-            thead.innerHTML = `<th>Tiêu Chí Đánh Giá</th>`;
-            template.bands.forEach(b => { thead.innerHTML += `<th class="band-header">Band ${b}</th>`; });
-            table.appendChild(thead);
-
+            const table = document.getElementById('matrix-table-element'); table.innerHTML = '';
+            const thead = document.createElement('tr'); thead.innerHTML = `<th>Tiêu Chí Đánh Giá</th>`;
+            template.bands.forEach(b => { thead.innerHTML += `<th class="band-header">Band ${b}</th>`; }); table.appendChild(thead);
             template.criteria.forEach((crit, idx) => {
-                const tr = document.createElement('tr');
-                const color = criteriaColors[idx % criteriaColors.length];
+                const tr = document.createElement('tr'); const color = criteriaColors[idx % criteriaColors.length];
                 tr.innerHTML = `<td style="border-left: 5px solid ${color}; background: #fafafa;"><div class="crit-label" style="background-color: ${color};">${crit}</div></td>`;
-                
                 template.bands.forEach(b => {
                     const cellText = (template.matrix[crit] && template.matrix[crit][b]) ? template.matrix[crit][b] : "Không có chi tiết";
                     const isSelected = String(selectedRubricScores[crit]) === String(b) ? 'selected' : '';
-                    const td = document.createElement('td');
-                    td.className = `matrix-cell ${isSelected}`; td.innerText = cellText;
-                    td.onclick = function() { selectRubricBand(crit, b, td); };
-                    tr.appendChild(td);
+                    const td = document.createElement('td'); td.className = `matrix-cell ${isSelected}`; td.innerText = cellText;
+                    td.onclick = function() { selectRubricBand(crit, b, td); }; tr.appendChild(td);
                 });
                 table.appendChild(tr);
             });
-
-            renderRubricSidebar(template);
-            updateTargetBandDropdown(template);
+            renderRubricSidebar(template); updateTargetBandDropdown(template);
         }
 
         function updateTargetBandDropdown(template) {
-            const bandDropdown = document.getElementById('target-band');
-            if (!bandDropdown) return;
-            const currentVal = bandDropdown.value;
-            bandDropdown.innerHTML = '<option value="">-- Chọn Band mục tiêu --</option>';
-            if (template && template.bands) {
-                template.bands.forEach(b => {
-                    const opt = document.createElement('option');
-                    opt.value = b; opt.innerText = `Band ${b}`; bandDropdown.appendChild(opt);
-                });
-            }
-            if (currentVal) {
-                const exists = Array.from(bandDropdown.options).some(opt => opt.value === String(currentVal));
-                if (exists) bandDropdown.value = String(currentVal);
-            }
+            const bandDropdown = document.getElementById('target-band'); if (!bandDropdown) return;
+            const currentVal = bandDropdown.value; bandDropdown.innerHTML = '<option value="">-- Chọn Band mục tiêu --</option>';
+            if (template && template.bands) { template.bands.forEach(b => { const opt = document.createElement('option'); opt.value = b; opt.innerText = `Band ${b}`; bandDropdown.appendChild(opt); }); }
+            if (currentVal) { const exists = Array.from(bandDropdown.options).some(opt => opt.value === String(currentVal)); if (exists) bandDropdown.value = String(currentVal); }
         }
 
         function selectRubricBand(crit, band, element) {
-            if(currentUser.role === 'student') return; // Student cannot change rubric
+            if(currentUser.role === 'student') return; 
             const rowCells = element.parentNode.querySelectorAll('.matrix-cell');
             rowCells.forEach(c => c.classList.remove('selected'));
-            element.classList.add('selected');
-            selectedRubricScores[crit] = band;
-            
+            element.classList.add('selected'); selectedRubricScores[crit] = band;
             const select = document.getElementById('rubric-template-select');
             const template = dataState.rubricTemplates.find(t => t.id === select.value);
             renderRubricSidebar(template);
@@ -1718,97 +1693,60 @@
             if (template) {
                 let sum = 0; let count = 0;
                 for (let c in selectedRubricScores) {
-                    if (template.criteria.includes(c)) {
-                        let val = parseFloat(selectedRubricScores[c]);
-                        if (!isNaN(val)) { sum += val; count++; }
-                    }
+                    if (template.criteria.includes(c)) { let val = parseFloat(selectedRubricScores[c]); if (!isNaN(val)) { sum += val; count++; } }
                 }
-                if (count > 0) {
-                    const wInput = document.getElementById('score-writing');
-                    if (wInput) { wInput.value = (sum / count).toFixed(1); calculateTotalScore(); }
-                }
+                if (count > 0) { const wInput = document.getElementById('score-writing'); if (wInput) { wInput.value = (sum / count).toFixed(1); calculateTotalScore(); } }
             }
         }
 
         function renderRubricSidebar(template) {
-            const container = document.getElementById('rubric-score-display');
-            container.innerHTML = '';
+            const container = document.getElementById('rubric-score-display'); container.innerHTML = '';
             template.criteria.forEach(crit => {
-                const score = selectedRubricScores[crit] || "Trống";
-                const box = document.createElement('div'); box.className = 'score-display-box';
-                box.innerHTML = `<strong style="font-size:0.9em; color:#475569;">${crit}</strong> 
-                                 <span style="font-weight:bold; color:var(--danger-color); font-size:1.2em; background:#fef2f2; padding:2px 8px; border-radius:6px; border: 1px solid #fca5a5;">${score}</span>`;
+                const score = selectedRubricScores[crit] || "Trống"; const box = document.createElement('div'); box.className = 'score-display-box';
+                box.innerHTML = `<strong style="font-size:0.9em; color:#475569;">${crit}</strong> <span style="font-weight:bold; color:var(--danger-color); font-size:1.2em; background:#fef2f2; padding:2px 8px; border-radius:6px; border: 1px solid #fca5a5;">${score}</span>`;
                 container.appendChild(box);
             });
         }
 
         function refreshModalTemplateSelect() {
-            const select = document.getElementById('modal-template-select');
-            select.innerHTML = '';
-            dataState.rubricTemplates.forEach(t => {
-                const opt = document.createElement('option');
-                opt.value = t.id; opt.innerText = t.name; select.appendChild(opt);
-            });
-            if (dataState.rubricTemplates.length > 0) {
-                select.value = dataState.rubricTemplates[0].id;
-                loadModalTemplate();
-            } else {
-                createNewTemplateInit();
-            }
+            const select = document.getElementById('modal-template-select'); select.innerHTML = '';
+            dataState.rubricTemplates.forEach(t => { const opt = document.createElement('option'); opt.value = t.id; opt.innerText = t.name; select.appendChild(opt); });
+            if (dataState.rubricTemplates.length > 0) { select.value = dataState.rubricTemplates[0].id; loadModalTemplate(); } else { createNewTemplateInit(); }
         }
 
         function loadModalTemplate() {
             const select = document.getElementById('modal-template-select');
             const tpl = dataState.rubricTemplates.find(t => t.id === select.value);
             if (!tpl) return;
-            document.getElementById('modal-tpl-id').value = tpl.id;
-            document.getElementById('modal-tpl-name').value = tpl.name;
-            document.getElementById('modal-tpl-criteria').value = tpl.criteria.join(', ');
-            document.getElementById('modal-tpl-bands').value = tpl.bands.join(', ');
+            document.getElementById('modal-tpl-id').value = tpl.id; document.getElementById('modal-tpl-name').value = tpl.name;
+            document.getElementById('modal-tpl-criteria').value = tpl.criteria.join(', '); document.getElementById('modal-tpl-bands').value = tpl.bands.join(', ');
             generateMatrixEditor(tpl.matrix);
         }
 
         function createNewTemplateInit() {
-            document.getElementById('modal-template-select').value = "";
-            document.getElementById('modal-tpl-id').value = "tpl-" + Date.now();
-            document.getElementById('modal-tpl-name').value = "Template Mới";
-            document.getElementById('modal-tpl-criteria').value = "Tiêu chí 1, Tiêu chí 2";
-            document.getElementById('modal-tpl-bands').value = "A, B, C, D";
-            generateMatrixEditor({});
+            document.getElementById('modal-template-select').value = ""; document.getElementById('modal-tpl-id').value = "tpl-" + Date.now();
+            document.getElementById('modal-tpl-name').value = "Template Mới"; document.getElementById('modal-tpl-criteria').value = "Tiêu chí 1, Tiêu chí 2";
+            document.getElementById('modal-tpl-bands').value = "A, B, C, D"; generateMatrixEditor({});
         }
 
         function deleteCurrentTemplate() {
-            const select = document.getElementById('modal-template-select');
-            if(!select.value) return;
-            if(confirm("Xác nhận xóa bộ tiêu chí này?")) {
-                dataState.rubricTemplates = dataState.rubricTemplates.filter(t => t.id !== select.value);
-                saveLocalState(); initTemplateSelect(); refreshModalTemplateSelect();
-            }
+            const select = document.getElementById('modal-template-select'); if(!select.value) return;
+            if(confirm("Xác nhận xóa bộ tiêu chí này?")) { dataState.rubricTemplates = dataState.rubricTemplates.filter(t => t.id !== select.value); saveLocalState(); initTemplateSelect(); refreshModalTemplateSelect(); }
         }
 
         function scrapeCurrentMatrix() {
-            let matrix = {};
-            const textareas = document.querySelectorAll('#modal-matrix-editor textarea');
-            textareas.forEach(ta => {
-                const crit = ta.getAttribute('data-crit'); const b = ta.getAttribute('data-band');
-                if (crit && b) { if (!matrix[crit]) matrix[crit] = {}; matrix[crit][b] = ta.value; }
-            });
+            let matrix = {}; const textareas = document.querySelectorAll('#modal-matrix-editor textarea');
+            textareas.forEach(ta => { const crit = ta.getAttribute('data-crit'); const b = ta.getAttribute('data-band'); if (crit && b) { if (!matrix[crit]) matrix[crit] = {}; matrix[crit][b] = ta.value; } });
             return matrix;
         }
 
         function generateMatrixEditor(existingMatrix = null) {
-            const criteriaStr = document.getElementById('modal-tpl-criteria').value;
-            const bandsStr = document.getElementById('modal-tpl-bands').value;
-            const criteria = criteriaStr.split(',').map(s => s.trim()).filter(s => s);
-            const bands = bandsStr.split(',').map(s => s.trim()).filter(s => s);
+            const criteriaStr = document.getElementById('modal-tpl-criteria').value; const bandsStr = document.getElementById('modal-tpl-bands').value;
+            const criteria = criteriaStr.split(',').map(s => s.trim()).filter(s => s); const bands = bandsStr.split(',').map(s => s.trim()).filter(s => s);
             const container = document.getElementById('modal-matrix-editor');
-            
-            let currentMatrix = existingMatrix;
-            if (!currentMatrix) currentMatrix = scrapeCurrentMatrix();
+            let currentMatrix = existingMatrix; if (!currentMatrix) { currentMatrix = scrapeCurrentMatrix(); }
 
-            if(criteria.length === 0 || bands.length === 0) {
-                container.innerHTML = '<p style="color:var(--danger-color);">Vui lòng nhập ít nhất 1 tiêu chí và 1 thang điểm.</p>'; return;
-            }
+            if(criteria.length === 0 || bands.length === 0) { container.innerHTML = '<p style="color:var(--danger-color);">Vui lòng nhập ít nhất 1 tiêu chí và 1 thang điểm.</p>'; return; }
 
             let table = '<table class="matrix-table" style="width:100%; min-width:600px;"><tr><th>Hạng Mục \\ Thang Điểm</th>';
             bands.forEach(b => table += `<th class="band-header">${b}</th>`); table += '</tr>';
@@ -1817,40 +1755,28 @@
                 const color = criteriaColors[idx % criteriaColors.length];
                 table += `<tr><td style="border-left:5px solid ${color};"><div class="crit-label" style="background-color:${color};">${crit}</div></td>`;
                 bands.forEach(b => {
-                    let val = "";
-                    if (currentMatrix && currentMatrix[crit] && currentMatrix[crit][b]) val = currentMatrix[crit][b];
-                    let cellId = `mat-${encodeURIComponent(crit)}-${encodeURIComponent(b)}`;
-                    let safeCrit = crit.replace(/"/g, '&quot;'); let safeBand = b.replace(/"/g, '&quot;');
+                    let val = ""; if (currentMatrix && currentMatrix[crit] && currentMatrix[crit][b]) { val = currentMatrix[crit][b]; }
+                    let cellId = `mat-${encodeURIComponent(crit)}-${encodeURIComponent(b)}`; let safeCrit = crit.replace(/"/g, '&quot;'); let safeBand = b.replace(/"/g, '&quot;');
                     table += `<td><textarea id="${cellId}" data-crit="${safeCrit}" data-band="${safeBand}" class="form-control" rows="3" style="font-size:0.85em;">${val}</textarea></td>`;
                 });
                 table += '</tr>';
             });
-            table += '</table>';
-            container.innerHTML = table;
+            table += '</table>'; container.innerHTML = table;
         }
 
         function saveTemplate() {
-            const id = document.getElementById('modal-tpl-id').value;
-            const name = document.getElementById('modal-tpl-name').value;
+            const id = document.getElementById('modal-tpl-id').value; const name = document.getElementById('modal-tpl-name').value;
             const criteria = document.getElementById('modal-tpl-criteria').value.split(',').map(s => s.trim()).filter(s => s);
             const bands = document.getElementById('modal-tpl-bands').value.split(',').map(s => s.trim()).filter(s => s);
-            
             if(!name || criteria.length === 0 || bands.length === 0) { alert("Vui lòng điền đủ Tên, Tiêu chí và Thang điểm."); return; }
-
-            let matrix = scrapeCurrentMatrix();
-            const newTpl = { id, name, criteria, bands, matrix };
+            let matrix = scrapeCurrentMatrix(); const newTpl = { id, name, criteria, bands, matrix };
             const existingIdx = dataState.rubricTemplates.findIndex(t => t.id === id);
-            
-            if (existingIdx >= 0) dataState.rubricTemplates[existingIdx] = newTpl;
-            else dataState.rubricTemplates.push(newTpl);
-
+            if (existingIdx >= 0) { dataState.rubricTemplates[existingIdx] = newTpl; } else { dataState.rubricTemplates.push(newTpl); }
             saveLocalState(); initTemplateSelect(); alert("Lưu template thành công!");
         }
 
         async function gradeWithAI(mode) {
-            if (OPENAI_API_KEY === "YOUR_OPENAI_API_KEY_HERE" || OPENAI_API_KEY === "") {
-                alert("Vui lòng cấu hình API Key của OpenAI trực tiếp trong file HTML để chạy tính năng này."); return;
-            }
+            if (OPENAI_API_KEY === "YOUR_OPENAI_API_KEY_HERE" || OPENAI_API_KEY === "") { alert("Vui lòng cấu hình API Key của OpenAI trực tiếp trong file HTML."); return; }
 
             if (mode === 'writing') {
                 const textContent = document.getElementById('assign-writing-content').innerText;
@@ -1859,9 +1785,7 @@
                 const select = document.getElementById('rubric-template-select');
                 const template = dataState.rubricTemplates.find(t => t.id === select.value);
                 let rubricContext = "";
-                if (template) {
-                    rubricContext = "\n\n--- THÔNG TIN TIÊU CHÍ CHẤM ĐIỂM (RUBRIC) ---\n" + JSON.stringify(template.matrix, null, 2);
-                }
+                if (template) { rubricContext = "\n\n--- THÔNG TIN TIÊU CHÍ CHẤM ĐIỂM (RUBRIC) ---\n" + JSON.stringify(template.matrix, null, 2); }
 
                 showLoading("🤖 Đang phân tích bài viết và đối chiếu tiêu chí. Vui lòng đợi...");
                 
@@ -1869,12 +1793,11 @@
                     const response = await fetch("https://api.openai.com/v1/chat/completions", {
                         method: "POST", headers: { "Content-Type": "application/json", "Authorization": `Bearer ${OPENAI_API_KEY}` },
                         body: JSON.stringify({
-                            model: "gpt-4-turbo",
-                            response_format: { type: "json_object" },
+                            model: "gpt-4-turbo", response_format: { type: "json_object" },
                             messages: [
                                 {
                                     role: "system",
-                                    content: "Bạn là một chuyên gia đánh giá và chấm điểm tiếng Anh toàn diện.\n\nNhiệm vụ 1: Phân tích bài viết, tìm các lỗi liên quan đến các tiêu chí đánh giá ngôn ngữ (như Ngữ pháp, Từ vựng, Chính tả, Mạch lạc, Mức độ hoàn thành, Văn phong, Ý tưởng). Trả về mã HTML bọc các đoạn lỗi bằng thẻ <span class='hl-[tên danh mục chữ thường]' data-type='[Tên danh mục]' data-comment='[Lời khuyên sửa chi tiết]'>đoạn lỗi</span>.\n\nNhiệm vụ 2: Dựa vào bảng Ma trận tiêu chí (Rubric) được cung cấp, đối chiếu và đánh giá để chọn ra 1 mức điểm (Band) phù hợp nhất cho mỗi Tiêu chí (Criteria). Tiêu chí và thang điểm có thể linh hoạt (ví dụ 1-10, A-F, hoặc hệ điểm IELTS), hãy phân tích thật kỹ mô tả của từng Band trong Rubric để đưa ra quyết định.\n\nBẮT BUỘC TRẢ VỀ CHUẨN JSON THEO CẤU TRÚC SAU:\n{\n  \"html_content\": \"chuỗi HTML chứa toàn bộ bài viết đã bọc thẻ highlight\",\n  \"scores\": {\n    \"Tên Tiêu Chí 1\": \"Band điểm (chỉ ghi số/giá trị band, ví dụ: 6 hoặc A)\",\n    \"Tên Tiêu Chí 2\": \"Band điểm\"\n  },\n  \"overall_comment\": \"Nhận xét chung tổng quát cho kỹ năng Writing\"\n}"
+                                    content: "Bạn là một chuyên gia đánh giá và chấm điểm tiếng Anh toàn diện.\n\nNhiệm vụ 1: Phân tích bài viết, tìm các lỗi liên quan đến các tiêu chí đánh giá ngôn ngữ (như Ngữ pháp, Từ vựng, Chính tả, Mạch lạc, Mức độ hoàn thành, Văn phong, Ý tưởng). Trả về mã HTML bọc các đoạn lỗi bằng thẻ <span class='hl-[tên danh mục chữ thường]' data-type='[Tên danh mục]' data-comment='[Lời khuyên sửa chi tiết]'>đoạn lỗi</span>.\n\nNhiệm vụ 2: Dựa vào bảng Ma trận tiêu chí (Rubric) được cung cấp, đối chiếu và đánh giá để chọn ra 1 mức điểm (Band) phù hợp nhất cho mỗi Tiêu chí (Criteria).\n\nBẮT BUỘC TRẢ VỀ CHUẨN JSON THEO CẤU TRÚC SAU:\n{\n  \"html_content\": \"chuỗi HTML chứa toàn bộ bài viết đã bọc thẻ highlight\",\n  \"scores\": {\n    \"Tên Tiêu Chí 1\": \"Band điểm (chỉ ghi số/giá trị band)\"\n  },\n  \"overall_comment\": \"Nhận xét chung tổng quát\"\n}"
                                 },
                                 { role: "user", content: "Bài viết của học viên:\n" + textContent + rubricContext }
                             ],
@@ -1888,15 +1811,14 @@
                             const aiResult = JSON.parse(resData.choices[0].message.content);
                             if (aiResult.html_content) document.getElementById('assign-writing-content').innerHTML = aiResult.html_content;
                             
-                            if (aiResult.scores && template && currentUser.role === 'teacher') {
+                            if (aiResult.scores && template) {
                                 let sum = 0, count = 0;
                                 for (let crit in aiResult.scores) {
                                     if (template.criteria.includes(crit)) {
                                         let bandVal = aiResult.scores[crit];
                                         let matchedBand = template.bands.find(b => String(b) === String(bandVal));
                                         if (matchedBand !== undefined) {
-                                            selectedRubricScores[crit] = matchedBand;
-                                            sum += parseFloat(matchedBand); count++;
+                                            selectedRubricScores[crit] = matchedBand; sum += parseFloat(matchedBand); count++;
                                         }
                                     }
                                 }
@@ -1913,35 +1835,25 @@
                             }
 
                             calculateTotalScore();
-                            
-                            // Nếu học viên tự chấm, lưu status
-                            if(currentUser.role === 'student') {
-                                saveAssignmentStatus('ai_graded');
-                            }
-
-                            hideLoading();
-                            setTimeout(() => alert("Đã hoàn tất phân tích bằng AI!"), 100);
-                        } catch(parseErr) {
-                            console.error("Lỗi parse JSON từ AI:", parseErr); hideLoading(); setTimeout(() => alert("Có lỗi khi phân tích dữ liệu AI trả về."), 100);
-                        }
+                            if(currentUser.role === 'student') saveAssignmentStatus('ai_graded');
+                            hideLoading(); setTimeout(() => alert("Đã hoàn tất phân tích lỗi và tự động chọn điểm Tiêu Chí!"), 100);
+                        } catch(parseErr) { hideLoading(); setTimeout(() => alert("Có lỗi khi phân tích dữ liệu AI trả về."), 100); }
                     } else { hideLoading(); }
-                } catch (err) { console.error("Lỗi kết nối OpenAI: ", err); hideLoading(); setTimeout(() => alert("Đã xảy ra lỗi đường truyền."), 100); }
+                } catch (err) { hideLoading(); setTimeout(() => alert("Đã xảy ra lỗi đường truyền."), 100); }
             } else if (mode === 'speaking') {
                 const speechText = document.getElementById('assign-speaking-text').value;
                 if (!speechText.trim()) { alert("Chưa có đoạn hội thoại để phân tích."); return; }
-
                 showLoading("🤖 Đang phân tích hội thoại Speaking. Vui lòng đợi...");
 
                 try {
                     const response = await fetch("https://api.openai.com/v1/chat/completions", {
                         method: "POST", headers: { "Content-Type": "application/json", "Authorization": `Bearer ${OPENAI_API_KEY}` },
                         body: JSON.stringify({
-                            model: "gpt-4-turbo",
-                            response_format: { type: "json_object" },
+                            model: "gpt-4-turbo", response_format: { type: "json_object" },
                             messages: [
                                 {
                                     role: "system",
-                                    content: "Bạn là một chuyên gia đánh giá kỹ năng Speaking tiếng Anh (giao tiếp chung hoặc học thuật). Nhận xét chi tiết về đoạn hội thoại. BẮT BUỘC TRẢ VỀ JSON:\n{\n  \"feedback\": \"Nhận xét chi tiết ngữ âm, từ vựng, độ trôi chảy\",\n  \"score\": \"Điểm Speaking (số, VD: 6.5)\",\n  \"overall_comment\": \"Nhận xét chung ngắn gọn cho kỹ năng Speaking\"\n}"
+                                    content: "Bạn là chuyên gia đánh giá Speaking tiếng Anh. BẮT BUỘC TRẢ VỀ JSON:\n{\n  \"feedback\": \"Nhận xét chi tiết\",\n  \"score\": \"Điểm Speaking (số)\",\n  \"overall_comment\": \"Nhận xét chung\"\n}"
                                 },
                                 { role: "user", content: speechText }
                             ]
@@ -1953,10 +1865,7 @@
                         try {
                             const aiResult = JSON.parse(resData.choices[0].message.content);
                             if (aiResult.feedback) document.getElementById('assign-speaking-feedback').value = aiResult.feedback;
-                            if (aiResult.score) {
-                                const sInput = document.getElementById('score-speaking');
-                                if(sInput) sInput.value = aiResult.score;
-                            }
+                            if (aiResult.score) { const sInput = document.getElementById('score-speaking'); if(sInput) sInput.value = aiResult.score; }
                             if (aiResult.overall_comment) {
                                 let currentCmt = document.getElementById('assign-overall-comment').value;
                                 document.getElementById('assign-overall-comment').value = currentCmt ? currentCmt + "\n\n[Speaking AI] " + aiResult.overall_comment : "[Speaking AI] " + aiResult.overall_comment;
@@ -1964,19 +1873,17 @@
                             calculateTotalScore(); hideLoading(); setTimeout(() => alert("Hoàn tất phân tích Speaking và cập nhật điểm!"), 100);
                         } catch(e) { hideLoading(); setTimeout(() => alert("Lỗi khi đọc kết quả AI."), 100); }
                     } else { hideLoading(); }
-                } catch (err) { console.error(err); hideLoading(); setTimeout(() => alert("Đã xảy ra lỗi khi kết nối với AI để phân tích Speaking."), 100); }
+                } catch (err) { hideLoading(); setTimeout(() => alert("Đã xảy ra lỗi khi kết nối AI."), 100); }
             }
         }
 
         async function generateSampleEssay() {
-            if (OPENAI_API_KEY === "YOUR_OPENAI_API_KEY_HERE" || OPENAI_API_KEY === "") { alert("Vui lòng cấu hình API Key của OpenAI trực tiếp trong file HTML để chạy tính năng này."); return; }
-            const promptText = document.getElementById('assign-prompt').value;
-            const textContent = document.getElementById('assign-writing-content').innerText;
-            const targetBandEl = document.getElementById('target-band');
-            const targetBand = targetBandEl ? targetBandEl.value : "";
+            if (OPENAI_API_KEY === "YOUR_OPENAI_API_KEY_HERE" || OPENAI_API_KEY === "") { alert("Vui lòng cấu hình API Key."); return; }
+            const promptText = document.getElementById('assign-prompt').value; const textContent = document.getElementById('assign-writing-content').innerText;
+            const targetBandEl = document.getElementById('target-band'); const targetBand = targetBandEl ? targetBandEl.value : "";
 
-            if (!textContent.trim()) { alert("Chưa có nội dung bài viết gốc để AI phân tích."); return; }
-            if (!targetBand || targetBand.trim() === "") { alert("Vui lòng chọn mức điểm (Band) mong muốn từ danh sách."); return; }
+            if (!textContent.trim()) { alert("Chưa có bài viết gốc để AI phân tích."); return; }
+            if (!targetBand || targetBand.trim() === "") { alert("Vui lòng chọn mức điểm (Band) mong muốn."); return; }
 
             const select = document.getElementById('rubric-template-select');
             const template = dataState.rubricTemplates.find(t => t.id === select.value);
@@ -1993,7 +1900,7 @@
                         messages: [
                             {
                                 role: "system",
-                                content: `Bạn là một chuyên gia ngôn ngữ và giáo viên tiếng Anh xuất sắc. Dựa vào đề bài (nếu có), bài viết gốc của học viên và ma trận tiêu chí chấm điểm, hãy viết lại một bài văn hoàn chỉnh đạt chính xác mức điểm [${targetBand}]. Hãy cố gắng bám sát ý tưởng gốc của học viên nhưng nâng cấp từ vựng, ngữ pháp và độ mạch lạc để đạt chuẩn band điểm này. CHỈ TRẢ VỀ NỘI DUNG BÀI VIẾT MẪU (VĂN BẢN THUẦN TÚY), KHÔNG GIẢI THÍCH THÊM BẤT CỨ ĐIỀU GÌ.`
+                                content: `Bạn là giáo viên tiếng Anh xuất sắc. Dựa vào bài viết gốc và rubric, hãy viết lại một bài văn hoàn chỉnh đạt chính xác mức điểm [${targetBand}]. CHỈ TRẢ VỀ NỘI DUNG BÀI VIẾT MẪU, KHÔNG GIẢI THÍCH.`
                             },
                             { role: "user", content: `Đề bài: ${promptText || 'Không có'}\n\nBài viết gốc:\n${textContent}${rubricContext}` }
                         ],
@@ -2006,16 +1913,17 @@
                     document.getElementById('assign-sample-essay').value = resData.choices[0].message.content.trim();
                     hideLoading(); setTimeout(() => alert("Đã tạo bài mẫu thành công!"), 100);
                 } else { hideLoading(); }
-            } catch (err) { console.error("Lỗi:", err); hideLoading(); setTimeout(() => alert("Đã xảy ra lỗi đường truyền khi kết nối OpenAI."), 100); }
+            } catch (err) { hideLoading(); setTimeout(() => alert("Đã xảy ra lỗi kết nối."), 100); }
         }
 
         function generateReport() {
-            const type = document.getElementById('report-type').value;
-            const ctx = document.getElementById('reportChart').getContext('2d');
-            
+            const type = document.getElementById('report-type').value; const ctx = document.getElementById('reportChart').getContext('2d');
             let groups = {}; 
             
-            dataState.students.forEach(student => {
+            let studentsToAnalyze = dataState.students;
+            if(currentUser.role === 'teacher') studentsToAnalyze = dataState.students.filter(s => s.teacherId === currentUser.id);
+
+            studentsToAnalyze.forEach(student => {
                 let key = "Chưa xác định";
                 if (type === 'class') key = student.className || "Chưa xác định";
                 else if (type === 'cohort') key = student.cohort || "Chưa xác định";
@@ -2026,18 +1934,15 @@
                     let total = 0;
                     student.assignments.forEach(a => total += (parseFloat(a.totalScore) || 0));
                     let avgScore = total / student.assignments.length;
-                    if (!groups[key]) groups[key] = [];
-                    groups[key].push(avgScore);
+                    if (!groups[key]) groups[key] = []; groups[key].push(avgScore);
                 }
             });
 
             let labels = []; let data = []; let backgroundColors = [];
             for (let k in groups) {
                 labels.push(k);
-                let sum = groups[k].reduce((a,b) => a+b, 0);
-                let avg = sum / groups[k].length;
-                data.push(avg.toFixed(2));
-                backgroundColors.push('rgba(79, 70, 229, 0.7)'); 
+                let sum = groups[k].reduce((a,b) => a+b, 0); let avg = sum / groups[k].length;
+                data.push(avg.toFixed(2)); backgroundColors.push('rgba(79, 70, 229, 0.7)'); 
             }
 
             if (reportChartInstance) reportChartInstance.destroy();
@@ -2063,8 +1968,9 @@
                     try {
                         const parsed = JSON.parse(readerEvent.target.result);
                         if (parsed.students && parsed.rubricTemplates) {
-                            dataState = parsed; saveLocalState(); renderStudentList(); initTemplateSelect();
-                            alert("Đã khôi phục dữ liệu thành công!");
+                            dataState = parsed; saveLocalState();
+                            if(currentUser.role === 'admin') renderTeacherList();
+                            renderStudentList(); initTemplateSelect(); alert("Đã khôi phục dữ liệu thành công!");
                         } else { alert("Định dạng file không hợp lệ."); }
                     } catch (err) { alert("Không thể đọc file JSON."); }
                 }
@@ -2073,8 +1979,7 @@
         }
 
         function exportToPDF() {
-            if (activeStudentIndex === null) { alert("Vui lòng chọn học viên trước khi in báo cáo!"); return; }
-            
+            if (activeStudentIndex === null) { alert("Vui lòng chọn bài tập trước khi in báo cáo!"); return; }
             let printArea = document.getElementById('print-report');
             if (!printArea) { printArea = document.createElement('div'); printArea.id = 'print-report'; document.body.appendChild(printArea); }
             
@@ -2087,14 +1992,9 @@
             const speakingText = document.getElementById('assign-speaking-text').value;
             const speakingFb = document.getElementById('assign-speaking-feedback').value;
             const sampleEssayText = document.getElementById('assign-sample-essay').value;
-            
-            const targetBandEl = document.getElementById('target-band');
-            const targetBandText = targetBandEl ? targetBandEl.value : "";
-            
-            const scoreWInput = document.getElementById('score-writing');
-            const scoreSInput = document.getElementById('score-speaking');
-            const scoreW = scoreWInput ? scoreWInput.value : '0';
-            const scoreS = scoreSInput ? scoreSInput.value : '0';
+            const targetBandEl = document.getElementById('target-band'); const targetBandText = targetBandEl ? targetBandEl.value : "";
+            const scoreWInput = document.getElementById('score-writing'); const scoreSInput = document.getElementById('score-speaking');
+            const scoreW = scoreWInput ? scoreWInput.value : '0'; const scoreS = scoreSInput ? scoreSInput.value : '0';
             const total = document.getElementById('total-score-val').innerText;
             const overall = document.getElementById('assign-overall-comment').value;
             
@@ -2113,13 +2013,9 @@
             }
             
             let sampleHtml = '';
-            if (document.getElementById('chk-writing').checked && sampleEssayText && sampleEssayText.trim() !== '') {
-                sampleHtml = `
-                    <div style="margin-top: 20px; padding: 15px; background: #f0fdf4; border-radius: 8px; border: 1px solid #bbf7d0;">
-                        <h4 style="color: #166534; margin-top: 0; margin-bottom: 10px;">💡 Bài Viết Mẫu Gợi Ý (Band ${targetBandText || 'Mục Tiêu'})</h4>
-                        <div style="white-space: pre-wrap; font-size: 14px; line-height: 1.6; color: #15803d;">${sampleEssayText}</div>
-                    </div>
-                `;
+            const hasWriting = document.getElementById('chk-writing') ? document.getElementById('chk-writing').checked : true;
+            if (hasWriting && sampleEssayText && sampleEssayText.trim() !== '') {
+                sampleHtml = `<div style="margin-top: 20px; padding: 15px; background: #f0fdf4; border-radius: 8px; border: 1px solid #bbf7d0;"><h4 style="color: #166534; margin-top: 0; margin-bottom: 10px;">💡 Bài Viết Mẫu Gợi Ý (Band ${targetBandText || 'Mục Tiêu'})</h4><div style="white-space: pre-wrap; font-size: 14px; line-height: 1.6; color: #15803d;">${sampleEssayText}</div></div>`;
             }
 
             let dynScoresHtml = '';
@@ -2129,8 +2025,7 @@
                 customSkillCheckboxes.forEach(cb => {
                     const skill = cb.value; const safeId = encodeURIComponent(skill).replace(/%/g, ''); const tab = document.getElementById(`custom-tab-${safeId}`);
                     if (tab) {
-                        const t = tab.querySelector('.custom-skill-title').value;
-                        const fb = tab.querySelector('.custom-skill-fb').value;
+                        const t = tab.querySelector('.custom-skill-title').value; const fb = tab.querySelector('.custom-skill-fb').value;
                         const sInput = document.getElementById(`score-${safeId}`); const s = sInput ? sInput.value : '0';
                         dynScoresHtml += `
                             <div style="margin-bottom: 20px;">
@@ -2145,22 +2040,20 @@
             }
 
             let writingHtmlSection = '';
-            if (document.getElementById('chk-writing').checked) {
+            if (hasWriting) {
                 writingHtmlSection = `
                     <h3>✍️ Kỹ Năng Writing</h3>
                     <div style="margin-bottom: 15px;"><strong>Đề bài:</strong> <span style="color: #475569; font-style: italic;">${promptStr || 'Không có'}</span></div>
-                    <div style="border: 1px solid #cbd5e1; padding: 15px; border-radius: 8px; background: #f8fafc; line-height: 1.8; font-size: 14px;">
-                        ${tempDiv.innerHTML || 'Không có bài làm.'}
-                    </div>
-                    ${errorNotes}
-                    ${sampleHtml}
+                    <div style="border: 1px solid #cbd5e1; padding: 15px; border-radius: 8px; background: #f8fafc; line-height: 1.8; font-size: 14px;">${tempDiv.innerHTML || 'Không có bài làm.'}</div>
+                    ${errorNotes} ${sampleHtml}
                     <p style="text-align: right; font-size: 1.2em;"><strong>Điểm Writing: <span style="color: #ef4444; background: #fef2f2; padding: 2px 8px; border-radius: 4px; border: 1px solid #fca5a5;">${scoreW || '0'}</span></strong></p>
                     <hr style="border: 0; border-top: 1px solid #e2e8f0; margin: 20px 0;">
                 `;
             }
 
             let speakingHtmlSection = '';
-            if (document.getElementById('chk-speaking').checked) {
+            const hasSpeaking = document.getElementById('chk-speaking') ? document.getElementById('chk-speaking').checked : false;
+            if (hasSpeaking) {
                 speakingHtmlSection = `
                     <h3>🗣️ Kỹ Năng Speaking</h3>
                     <div style="margin-bottom: 10px;"><strong>Hội thoại (Transcript):</strong></div>
@@ -2210,7 +2103,7 @@
                     <h3>✅ TỔNG KẾT ĐÁNH GIÁ</h3>
                     `;
                     
-            if (document.getElementById('chk-writing').checked) {
+            if (hasWriting) {
                 html += `
                     <div style="margin-bottom: 20px;">
                         <strong>Chi tiết điểm Rubric (Writing):</strong>

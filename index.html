@@ -261,13 +261,11 @@
 </head>
 <body>
 
-    <!-- OVERLAY LOADING -->
     <div id="loading-overlay">
         <div class="spinner"></div>
         <div class="loading-text" id="loading-message">Đang xử lý, vui lòng đợi...</div>
     </div>
 
-    <!-- VIEW ĐĂNG NHẬP -->
     <div id="login-view">
         <div class="login-card">
             <h2>Đăng Nhập Hệ Thống</h2>
@@ -291,10 +289,8 @@
         </div>
     </div>
 
-    <!-- AREA XUẤT FILE PDF -->
     <div id="print-report"></div>
 
-    <!-- APP MAIN LAYOUT -->
     <div class="app-layout" id="main-app">
         <header class="app-header">
             <div style="display: flex; align-items: center;">
@@ -308,13 +304,10 @@
         </header>
 
         <div class="app-body">
-            <!-- SIDEBAR -->
             <nav id="side-nav" class="side-nav"></nav>
 
-            <!-- MAIN WORKSPACE -->
             <main class="main-area">
                 
-                <!-- VIEW 0: QUẢN LÝ GIẢNG VIÊN (ADMIN) -->
                 <div id="view-teachers" class="app-view">
                     <div class="card">
                         <h2>Quản Lý Giảng Viên</h2>
@@ -340,7 +333,6 @@
                     </div>
                 </div>
 
-                <!-- VIEW 1: QUẢN LÝ HỌC VIÊN -->
                 <div id="view-students" class="app-view">
                     <div class="card">
                         <h2>Quản Lý Phân Cấp Học Viên</h2>
@@ -360,7 +352,7 @@
                                 <div class="form-group"><label>Level Cấp Độ</label><input type="text" id="std-level" class="form-control" required placeholder="Ví dụ: Intermediate"></div>
                             </div>
                             <div style="margin-top: 10px;">
-                                <button type="submit" class="btn btn-success" id="btn-save-student">Lưu Thông Tin</button>
+                                <button type="submit" class="btn btn-success" id="btn-save-student">Lưu Thông Tin (Mật khẩu mặc định: 123456)</button>
                                 <button type="button" class="btn btn-secondary" onclick="resetStudentForm()">Tạo Mới Form</button>
                             </div>
                         </form>
@@ -382,7 +374,6 @@
                     </div>
                 </div>
 
-                <!-- VIEW 2: GIAO BÀI TẬP (TEACHER ONLY) -->
                 <div id="view-assign" class="app-view">
                     <div class="card">
                         <h2>📢 Giao Bài Tập Mới (Assign Homework)</h2>
@@ -418,10 +409,8 @@
                     </div>
                 </div>
 
-                <!-- VIEW 3: BÀI TẬP VÀ CHẤM ĐIỂM (TEACHER/ADMIN/STUDENT) -->
                 <div id="view-grading" class="app-view">
                     
-                    <!-- LAYOUT 1: BỘ LỌC TÌM KIẾM (CHỈ GIÁO VIÊN/ADMIN) -->
                     <div class="card btn-teacher-admin-only" id="layout-1-filters">
                         <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #eee; margin-bottom: 15px; padding-bottom: 10px;">
                             <h3 style="margin:0;">🔍 Bộ Lọc Tìm Kiếm Bài Tập</h3>
@@ -442,7 +431,6 @@
                         </div>
                     </div>
 
-                    <!-- LAYOUT 2: DANH SÁCH BÀI TẬP -->
                     <div class="card" id="layout-2-list">
                         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
                             <h3 style="margin: 0;" id="list-title-text">Danh Sách Bài Làm</h3>
@@ -463,14 +451,12 @@
                         <div id="empty-list-msg" style="text-align:center; padding: 20px; color:#94a3b8; display:none;">Không tìm thấy bài tập nào.</div>
                     </div>
 
-                    <!-- LAYOUT 3: KHÔNG GIAN LÀM VIỆC -->
                     <div id="assignment-workspace" style="display:none;">
                         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 15px;">
                             <h2 style="margin:0; border:none;">Chi Tiết Bài Làm</h2>
                             <button class="btn btn-secondary" onclick="closeWorkspace()">X Đóng Lại Danh Sách</button>
                         </div>
 
-                        <!-- CẤU TRÚC ĐÁNH GIÁ (GIÁO VIÊN/ADMIN) -->
                         <div class="assignment-meta-box btn-teacher-admin-only" id="assignment-meta-box-container">
                             <div class="meta-box-title">Thiết Lập Cấu Trúc Đánh Giá (GV/Admin)</div>
                             <div class="form-group"><input type="text" id="assign-title" class="form-control assign-title-input" placeholder="Tiêu đề Bài Tập"></div>
@@ -483,7 +469,6 @@
                             </div>
                         </div>
                         
-                        <!-- INFO HỌC VIÊN VIEW -->
                         <div id="student-assignment-info" style="display:none; background: #eff6ff; padding: 20px; border-radius: 10px; margin-bottom: 20px; border: 1px solid #bfdbfe;">
                             <h2 id="display-assign-title" style="margin:0 0 10px 0; color: #1e40af; border:none; padding:0;">Tiêu đề</h2>
                             <p id="display-assign-desc" style="color: #475569; margin: 0 0 10px 0; font-size: 0.95em;"></p>
@@ -499,7 +484,6 @@
                             </div>
 
                             <div id="tab-contents-wrapper">
-                                <!-- TAB 1: WRITING -->
                                 <div id="writing-tab" class="tab-content active">
                                     <div class="form-group btn-teacher-admin-only" id="prompt-input-container">
                                         <label>Đề Bài Writing (Prompt)</label>
@@ -540,7 +524,6 @@
                                     </div>
                                 </div>
 
-                                <!-- TAB 2: SPEAKING -->
                                 <div id="speaking-tab" class="tab-content btn-teacher-admin-only">
                                     <div class="form-group">
                                         <label>Ghi Âm & Chuyển Text</label>
@@ -558,7 +541,6 @@
                                     </div>
                                 </div>
 
-                                <!-- TAB 3: RUBRIC MATRIX -->
                                 <div id="rubric-tab" class="tab-content">
                                     <div style="margin-bottom: 20px; display: flex; align-items: center; gap: 15px; flex-wrap: wrap;">
                                         <label style="font-weight: 600; margin: 0;">Bộ Tiêu Chí Đánh Giá: </label>
@@ -571,7 +553,6 @@
                                     </div>
                                 </div>
 
-                                <!-- TAB 4: SUMMARY & EXPORT -->
                                 <div id="summary-tab" class="tab-content">
                                     <div class="form-group btn-teacher-admin-only">
                                         <label style="text-transform: uppercase; color: #4f46e5; font-weight: 800;">BẢNG ĐIỂM CÁC KỸ NĂNG</label>
@@ -593,7 +574,7 @@
                                     </div>
 
                                     <div class="form-group" id="summary-sample-essay-container" style="display:none;">
-                                        <label>Bài Viết Mẫu Gợi Ý (Dành cho học viên tham khảo)</label>
+                                        <label>Bài Viết Mẫu Gợi Ý</label>
                                         <div id="summary-sample-essay-content" style="background:#f0fdf4; padding:15px; border:1px solid #bbf7d0; border-radius:8px; font-size:0.95em; white-space: pre-wrap; color: #166534; line-height: 1.6;"></div>
                                     </div>
 
@@ -602,7 +583,6 @@
                                         <textarea id="assign-overall-comment" class="form-control" rows="5" placeholder="Chưa có nhận xét..."></textarea>
                                     </div>
 
-                                    <!-- BẢNG ĐIỀU KHIỂN THEO ROLE -->
                                     <div style="margin-top: 25px; padding-top: 15px; border-top: 1px solid #eee; display: flex; gap: 10px; flex-wrap: wrap;" id="action-controls-teacher">
                                         <button class="btn btn-warning" onclick="saveAssignmentStatus('pending')">Lưu (Chưa Chấm)</button>
                                         <button class="btn btn-success" onclick="saveAssignmentStatus('graded')">✅ Đã Chấm Xong</button>
@@ -626,7 +606,6 @@
                     </div>
                 </div>
 
-                <!-- VIEW 3: RUBRICS MANAGEMENT (TEACHER / ADMIN) -->
                 <div id="view-rubrics" class="app-view">
                     <div class="card">
                         <h2>Tùy Chỉnh Bộ Tiêu Chí (Rubric Templates)</h2>
@@ -647,7 +626,6 @@
                     </div>
                 </div>
 
-                <!-- VIEW 4: REPORTS & CHARTS (TEACHER / ADMIN) -->
                 <div id="view-reports" class="app-view">
                     <div class="card">
                         <h2>Báo Cáo Thống Kê & Phân Tích Điểm Số</h2>
@@ -664,7 +642,6 @@
                     </div>
                 </div>
 
-                <!-- VIEW 5: CHANGE PASSWORD -->
                 <div id="view-password" class="app-view">
                     <div class="card" style="max-width: 500px; margin: 40px auto;">
                         <h2>Đổi Mật Khẩu</h2>
@@ -719,12 +696,11 @@
 
         window.onload = function() {
             loadLocalState();
-            if(dataState.admins === undefined) dataState.admins = [{ id: "admin", username: "admin", password: "123", name: "Quản Trị Viên" }];
-            if(dataState.teachers === undefined) dataState.teachers = [{ id: "t_gv1", username: "gv_nguyenvana", password: "123456", name: "Nguyễn Văn A" }];
+            if(!dataState.admins) dataState.admins = [{ id: "admin", username: "admin", password: "123", name: "Quản Trị Viên" }];
+            if(!dataState.teachers) dataState.teachers = [{ id: "t_gv1", username: "gv_nguyenvana", password: "123456", name: "Nguyễn Văn A" }];
             if(!dataState.availableCustomSkills) dataState.availableCustomSkills = ['Reading', 'Listening'];
             if(!dataState.organization) dataState.organization = {};
             
-            // Patch older teacher passwords if left at default '123' to avoid confusion with new '123456' instructions
             if (dataState.teachers && dataState.teachers[0] && dataState.teachers[0].id === "t_gv1" && dataState.teachers[0].password === "123") {
                 dataState.teachers[0].password = "123456";
             }

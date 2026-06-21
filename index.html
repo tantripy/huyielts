@@ -263,7 +263,7 @@
 
     <div id="loading-overlay">
         <div class="spinner"></div>
-        <div class="loading-text" id="loading-message">Đang kết nối Server...</div>
+        <div class="loading-text" id="loading-message">Đang xử lý, vui lòng đợi...</div>
     </div>
 
     <div id="login-view">
@@ -282,7 +282,7 @@
             </form>
             <div style="margin-top: 20px; font-size: 0.85em; color: #64748b; line-height: 1.6;">
                 <p>Tài khoản Admin: <strong>admin</strong> / <strong>123</strong></p>
-                <a href="#" onclick="factoryReset()" style="color: var(--danger-color); text-decoration: underline; font-weight:600;">Khôi phục cài đặt gốc (Clear LocalStorage)</a>
+                <a href="#" onclick="factoryReset()" style="color: var(--danger-color); text-decoration: underline; font-weight:600;">Khôi phục cài đặt gốc (Clear Data)</a>
             </div>
         </div>
     </div>
@@ -350,7 +350,7 @@
                                 <div class="form-group"><label>Level Cấp Độ</label><input type="text" id="std-level" class="form-control" required placeholder="Ví dụ: Intermediate"></div>
                             </div>
                             <div style="margin-top: 10px;">
-                                <button type="submit" class="btn btn-success" id="btn-save-student">Lưu Thông Tin (Mật khẩu mặc định: 123456)</button>
+                                <button type="submit" class="btn btn-success" id="btn-save-student">Lưu Thông Tin</button>
                                 <button type="button" class="btn btn-secondary" onclick="resetStudentForm()">Tạo Mới Form</button>
                             </div>
                         </form>
@@ -446,7 +446,7 @@
 
                     <div id="assignment-workspace" style="display:none;">
                         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 15px;">
-                            <h2 style="margin:0; border:none;">Không Gian Làm Việc</h2>
+                            <h2 style="margin:0; border:none;">Chi Tiết Bài Làm</h2>
                             <button class="btn btn-secondary" onclick="closeWorkspace()">X Đóng Lại Danh Sách</button>
                         </div>
 
@@ -687,21 +687,6 @@
         let recordSeconds = 0;
         let reportChartInstance = null;
 
-        async function apiCall(method, data = null) {
-            try {
-                const options = { method: method };
-                if (data) {
-                    options.headers = { 'Content-Type': 'application/json' };
-                    options.body = JSON.stringify(data);
-                }
-                const res = await fetch('api.php', options);
-                return await res.json();
-            } catch (e) {
-                console.error("API Call Error:", e);
-                return null;
-            }
-        }
-
         function normalizeData() {
             if(!dataState.admins || dataState.admins.length === 0) dataState.admins = [{ id: "admin", username: "admin", password: "123", name: "Quản Trị Viên" }];
             if(!dataState.teachers || dataState.teachers.length === 0) dataState.teachers = [{ id: "t_gv1", username: "gv_nguyenvana", password: "123456", name: "Nguyễn Văn A" }];
@@ -722,24 +707,20 @@
             });
         }
 
-        window.onload = async function() {
-            showLoading("Đang kết nối Server...");
-            await loadLocalState();
-            hideLoading();
+        window.onload = function() {
+            loadLocalState();
+            normalizeData();
+            saveLocalState();
         };
 
-        async function saveLocalState() { 
-            await apiCall('POST', dataState);
+        function saveLocalState() { 
+            localStorage.setItem('eng_grading_state', JSON.stringify(dataState)); 
             if(currentUser) localStorage.setItem('eng_current_user', JSON.stringify(currentUser));
         }
 
-        async function loadLocalState() {
-            const serverData = await apiCall('GET');
-            if (serverData && Object.keys(serverData).length > 0) {
-                dataState = serverData;
-            }
-            normalizeData();
-            
+        function loadLocalState() {
+            const saved = localStorage.getItem('eng_grading_state');
+            if (saved) { try { dataState = JSON.parse(saved); normalizeData(); } catch(e) {} }
             const savedUser = localStorage.getItem('eng_current_user');
             if (savedUser) { 
                 try { 
@@ -749,33 +730,10 @@
             }
         }
 
-        async function factoryReset() {
+        function factoryReset() {
             if(confirm("CẢNH BÁO MẤT DỮ LIỆU: Hành động này sẽ XÓA TOÀN BỘ dữ liệu học viên, bài tập và khôi phục hệ thống về trạng thái ban đầu.\n\nBạn có chắc chắn muốn làm điều này?")) {
+                localStorage.removeItem('eng_grading_state');
                 localStorage.removeItem('eng_current_user');
-                
-                // Khôi phục mảng gốc
-                dataState = {
-                    admins: [{ id: "admin", username: "admin", password: "123", name: "Quản Trị Viên" }],
-                    teachers: [{ id: "t_gv1", username: "gv_nguyenvana", password: "123456", name: "Nguyễn Văn A" }],
-                    students: [],
-                    availableCustomSkills: ['Reading', 'Listening'],
-                    organization: {},
-                    rubricTemplates: [
-                        {
-                            id: "general-english-essay",
-                            name: "Bài Luận Tiếng Anh (English Essay Rubric)",
-                            criteria: ["Task Response", "Coherence", "Lexical Resource", "Grammar"],
-                            bands: [9, 8, 7, 6, 5],
-                            matrix: {
-                                "Task Response": { 9: "Hoàn hảo", 8: "Rất tốt", 7: "Tốt", 6: "Khá", 5: "Trung bình" },
-                                "Coherence": { 9: "Hoàn hảo", 8: "Rất tốt", 7: "Tốt", 6: "Khá", 5: "Trung bình" },
-                                "Lexical Resource": { 9: "Hoàn hảo", 8: "Rất tốt", 7: "Tốt", 6: "Khá", 5: "Trung bình" },
-                                "Grammar": { 9: "Hoàn hảo", 8: "Rất tốt", 7: "Tốt", 6: "Khá", 5: "Trung bình" }
-                            }
-                        }
-                    ]
-                };
-                await apiCall('POST', dataState);
                 location.reload();
             }
         }
@@ -867,12 +825,16 @@
                 initTemplateSelect(); setupTooltipListeners();
                 
                 document.getElementById('list-title-text').innerText = "Danh Sách Bài Của Bạn";
+                document.getElementById('workspace-header').style.display = 'none';
+                document.getElementById('assignment-workspace').style.display = 'none';
                 
                 switchMainView('view-grading');
             }
         }
 
         // UTILS
+        function showLoading(text) { document.getElementById('loading-message').innerText = text || "Đang xử lý..."; document.getElementById('loading-overlay').classList.add('active'); }
+        function hideLoading() { document.getElementById('loading-overlay').classList.remove('active'); }
         function toggleSidebar() { document.getElementById('side-nav').classList.toggle('collapsed'); }
 
         function switchMainView(viewId) {

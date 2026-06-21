@@ -87,7 +87,7 @@
         .side-nav a:hover { background-color: rgba(255,255,255,0.05); color: white; }
         .side-nav a.active { background-color: rgba(255,255,255,0.1); color: white; border-left-color: var(--accent-color); font-weight: 600; }
 
-        .main-area { flex: 1; padding: 30px; overflow-y: auto; }
+        .main-area { flex: 1; padding: 30px; overflow-y: auto; scroll-behavior: smooth; }
 
         .app-view { display: none; animation: fadeIn 0.4s ease; }
         .app-view.active-view { display: block; }
@@ -133,6 +133,7 @@
         .btn-danger { background-color: var(--danger-color); color: white; }
         .btn-warning { background-color: var(--warning-color); color: white; }
         .btn-secondary { background-color: #64748b; color: white; }
+        .btn-info { background-color: #0ea5e9; color: white; }
 
         /* Status Badges */
         .status-badge { padding: 4px 8px; border-radius: 6px; font-size: 0.75em; font-weight: bold; color: white; }
@@ -149,7 +150,7 @@
         .student-table th { background-color: #f1f5f9; font-weight: 600; color: #475569; }
         .student-table tr:last-child td { border-bottom: none; }
         .student-table tr:hover { background-color: #f8fafc; cursor: pointer; }
-        .selected-student { background-color: #eff6ff !important; border-left: 4px solid var(--accent-color); }
+        .selected-row { background-color: #eff6ff !important; border-left: 4px solid var(--accent-color); }
 
         .assignment-meta-box { background: #f8fafc; border: 1px solid var(--border-color); border-radius: 10px; padding: 20px; margin-bottom: 25px; }
 
@@ -226,11 +227,23 @@
         #print-report { display: none; }
 
         /* Responsive and Student role Specific Hiding */
+        body.role-student .btn-teacher-admin-only,
         body.role-student #view-students, 
         body.role-student #view-reports, 
+        body.role-student #view-teachers, 
+        body.role-student #view-assign,
         body.role-student #tab-btn-speaking, 
-        body.role-student .custom-tab-btn,
-        body.role-student .btn-teacher-only {
+        body.role-student .custom-tab-btn {
+            display: none !important;
+        }
+
+        body.role-teacher .btn-admin-only,
+        body.role-teacher #view-teachers {
+            display: none !important;
+        }
+
+        body.role-admin .btn-teacher-only,
+        body.role-admin #view-assign {
             display: none !important;
         }
 
@@ -248,13 +261,11 @@
 </head>
 <body>
 
-    <!-- OVERLAY LOADING -->
     <div id="loading-overlay">
         <div class="spinner"></div>
         <div class="loading-text" id="loading-message">Đang xử lý, vui lòng đợi...</div>
     </div>
 
-    <!-- VIEW ĐĂNG NHẬP -->
     <div id="login-view">
         <div class="login-card">
             <h2>Đăng Nhập Hệ Thống</h2>
@@ -271,17 +282,15 @@
             </form>
             <div style="margin-top: 20px; font-size: 0.85em; color: #64748b; line-height: 1.6;">
                 Tài khoản Admin: <strong>admin</strong> / <strong>123</strong><br>
+                Tài khoản GV: <strong>gv_nguyenvana</strong> / <strong>123456</strong><br>
                 Tài khoản Học viên: Nhập Mã Sinh Viên / MK: <strong>123456</strong>
             </div>
         </div>
     </div>
 
-    <!-- AREA XUẤT FILE PDF -->
     <div id="print-report"></div>
 
-    <!-- APP MAIN LAYOUT -->
     <div class="app-layout" id="main-app">
-        <!-- HEADER -->
         <header class="app-header">
             <div style="display: flex; align-items: center;">
                 <button class="menu-toggle" onclick="toggleSidebar()">☰</button>
@@ -294,33 +303,19 @@
         </header>
 
         <div class="app-body">
-            <!-- SIDEBAR -->
-            <nav id="side-nav" class="side-nav">
-                <!-- Nội dung sidebar được render qua JS tùy Role -->
-            </nav>
+            <nav id="side-nav" class="side-nav"></nav>
 
-            <!-- MAIN WORKSPACE -->
             <main class="main-area">
                 
-                <!-- VIEW 0: TEACHER MANAGEMENT (ADMIN ONLY) -->
                 <div id="view-teachers" class="app-view">
                     <div class="card">
                         <h2>Quản Lý Giảng Viên</h2>
                         <form id="teacher-form" onsubmit="event.preventDefault(); saveTeacher();">
                             <input type="hidden" id="teacher-idx" value="">
                             <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px;">
-                                <div class="form-group">
-                                    <label>Tên đăng nhập (Username)</label>
-                                    <input type="text" id="tc-username" class="form-control" required placeholder="Ví dụ: gv_nguyenvana">
-                                </div>
-                                <div class="form-group">
-                                    <label>Họ và Tên</label>
-                                    <input type="text" id="tc-name" class="form-control" required placeholder="Ví dụ: Nguyễn Văn A">
-                                </div>
-                                <div class="form-group">
-                                    <label>Mật khẩu</label>
-                                    <input type="text" id="tc-password" class="form-control" required value="123456">
-                                </div>
+                                <div class="form-group"><label>Tên đăng nhập (Username)</label><input type="text" id="tc-username" class="form-control" required></div>
+                                <div class="form-group"><label>Họ và Tên</label><input type="text" id="tc-name" class="form-control" required></div>
+                                <div class="form-group"><label>Mật khẩu</label><input type="text" id="tc-password" class="form-control" required value="123456"></div>
                             </div>
                             <div style="margin-top: 10px;">
                                 <button type="submit" class="btn btn-success">Lưu Giảng Viên</button>
@@ -328,86 +323,32 @@
                             </div>
                         </form>
                     </div>
-
                     <div class="card">
                         <h3>Danh Sách Giảng Viên</h3>
                         <table class="student-table">
-                            <thead>
-                                <tr>
-                                    <th>Username</th>
-                                    <th>Họ Tên</th>
-                                    <th>Mật Khẩu</th>
-                                    <th></th>
-                                </tr>
-                            </thead>
-                            <tbody id="teacher-list-body">
-                            </tbody>
+                            <thead><tr><th>Username</th><th>Họ Tên</th><th>Mật Khẩu</th><th></th></tr></thead>
+                            <tbody id="teacher-list-body"></tbody>
                         </table>
                     </div>
                 </div>
 
-                <!-- VIEW 1: STUDENT MANAGEMENT (TEACHER & ADMIN ONLY) -->
                 <div id="view-students" class="app-view">
                     <div class="card">
                         <h2>Quản Lý Phân Cấp Học Viên</h2>
                         <form id="student-form" onsubmit="event.preventDefault(); saveStudent();">
                             <input type="hidden" id="student-idx" value="">
-                            
-                            <!-- HIERARCHY SELECTS -->
                             <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 15px; margin-bottom: 15px;">
-                                <div class="form-group">
-                                    <label>Trường</label>
-                                    <div style="display: flex; gap: 5px;">
-                                        <select id="std-school" class="form-control" onchange="handleOrgChange('school')"></select>
-                                        <button type="button" class="btn btn-secondary" style="margin:0; padding: 0 12px;" onclick="addOrgItem('school')" title="Thêm Trường">+</button>
-                                        <button type="button" class="btn btn-danger" style="margin:0; padding: 0 12px;" onclick="deleteOrgItem('school')" title="Xóa Trường">-</button>
-                                    </div>
-                                </div>
-                                <div class="form-group">
-                                    <label>Khoa</label>
-                                    <div style="display: flex; gap: 5px;">
-                                        <select id="std-department" class="form-control" onchange="handleOrgChange('dept')"></select>
-                                        <button type="button" class="btn btn-secondary" style="margin:0; padding: 0 12px;" onclick="addOrgItem('dept')" title="Thêm Khoa">+</button>
-                                        <button type="button" class="btn btn-danger" style="margin:0; padding: 0 12px;" onclick="deleteOrgItem('dept')" title="Xóa Khoa">-</button>
-                                    </div>
-                                </div>
-                                <div class="form-group">
-                                    <label>Khóa</label>
-                                    <div style="display: flex; gap: 5px;">
-                                        <select id="std-cohort" class="form-control" onchange="handleOrgChange('cohort')"></select>
-                                        <button type="button" class="btn btn-secondary" style="margin:0; padding: 0 12px;" onclick="addOrgItem('cohort')" title="Thêm Khóa">+</button>
-                                        <button type="button" class="btn btn-danger" style="margin:0; padding: 0 12px;" onclick="deleteOrgItem('cohort')" title="Xóa Khóa">-</button>
-                                    </div>
-                                </div>
-                                <div class="form-group">
-                                    <label>Lớp</label>
-                                    <div style="display: flex; gap: 5px;">
-                                        <select id="std-class" class="form-control"></select>
-                                        <button type="button" class="btn btn-secondary" style="margin:0; padding: 0 12px;" onclick="addOrgItem('class')" title="Thêm Lớp">+</button>
-                                        <button type="button" class="btn btn-danger" style="margin:0; padding: 0 12px;" onclick="deleteOrgItem('class')" title="Xóa Lớp">-</button>
-                                    </div>
-                                </div>
+                                <div class="form-group"><label>Trường</label><div style="display: flex; gap: 5px;"><select id="std-school" class="form-control" onchange="handleOrgChange('school')"></select><button type="button" class="btn btn-secondary" style="margin:0; padding: 0 12px;" onclick="addOrgItem('school')" title="Thêm Trường">+</button><button type="button" class="btn btn-danger btn-admin-only" style="margin:0; padding: 0 12px;" onclick="deleteOrgItem('school')" title="Xóa Trường">-</button></div></div>
+                                <div class="form-group"><label>Khoa</label><div style="display: flex; gap: 5px;"><select id="std-department" class="form-control" onchange="handleOrgChange('dept')"></select><button type="button" class="btn btn-secondary" style="margin:0; padding: 0 12px;" onclick="addOrgItem('dept')" title="Thêm Khoa">+</button><button type="button" class="btn btn-danger btn-admin-only" style="margin:0; padding: 0 12px;" onclick="deleteOrgItem('dept')" title="Xóa Khoa">-</button></div></div>
+                                <div class="form-group"><label>Khóa</label><div style="display: flex; gap: 5px;"><select id="std-cohort" class="form-control" onchange="handleOrgChange('cohort')"></select><button type="button" class="btn btn-secondary" style="margin:0; padding: 0 12px;" onclick="addOrgItem('cohort')" title="Thêm Khóa">+</button><button type="button" class="btn btn-danger btn-admin-only" style="margin:0; padding: 0 12px;" onclick="deleteOrgItem('cohort')" title="Xóa Khóa">-</button></div></div>
+                                <div class="form-group"><label>Lớp</label><div style="display: flex; gap: 5px;"><select id="std-class" class="form-control"></select><button type="button" class="btn btn-secondary" style="margin:0; padding: 0 12px;" onclick="addOrgItem('class')" title="Thêm Lớp">+</button><button type="button" class="btn btn-danger btn-admin-only" style="margin:0; padding: 0 12px;" onclick="deleteOrgItem('class')" title="Xóa Lớp">-</button></div></div>
                             </div>
-
                             <hr style="border: 0; border-top: 1px dashed #cbd5e1; margin: 20px 0;">
-
                             <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 15px;">
-                                <div class="form-group" id="teacher-select-group" style="display: none;">
-                                    <label>Giảng viên phụ trách</label>
-                                    <select id="std-teacher" class="form-control"></select>
-                                </div>
-                                <div class="form-group">
-                                    <label>Mã Số Sinh Viên (Dùng làm Username đăng nhập)</label>
-                                    <input type="text" id="std-id" class="form-control" required placeholder="Ví dụ: SV12345">
-                                </div>
-                                <div class="form-group">
-                                    <label>Họ và Tên</label>
-                                    <input type="text" id="std-name" class="form-control" required placeholder="Ví dụ: Nguyễn Văn A">
-                                </div>
-                                <div class="form-group">
-                                    <label>Level Cấp Độ</label>
-                                    <input type="text" id="std-level" class="form-control" required placeholder="Ví dụ: Intermediate">
-                                </div>
+                                <div class="form-group" id="teacher-select-group" style="display: none;"><label>Giảng viên phụ trách</label><select id="std-teacher" class="form-control"></select></div>
+                                <div class="form-group"><label>Mã Số Sinh Viên (Username)</label><input type="text" id="std-id" class="form-control" required placeholder="Ví dụ: SV12345"></div>
+                                <div class="form-group"><label>Họ và Tên</label><input type="text" id="std-name" class="form-control" required placeholder="Ví dụ: Nguyễn Văn A"></div>
+                                <div class="form-group"><label>Level Cấp Độ</label><input type="text" id="std-level" class="form-control" required placeholder="Ví dụ: Intermediate"></div>
                             </div>
                             <div style="margin-top: 10px;">
                                 <button type="submit" class="btn btn-success" id="btn-save-student">Lưu Thông Tin (Mật khẩu mặc định: 123456)</button>
@@ -418,24 +359,13 @@
 
                     <div class="card">
                         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
-                            <h3 style="margin: 0;">Danh Sách Học Viên Của Bạn</h3>
+                            <h3 style="margin: 0;">Danh Sách Học Viên</h3>
                             <input type="text" id="search-student" class="form-control" style="width: 300px; padding: 8px 12px;" placeholder="🔍 Tìm theo Tên, Mã số..." onkeyup="renderStudentList()">
                         </div>
                         <table class="student-table">
-                            <thead>
-                                <tr>
-                                    <th>Mã Số (User)</th>
-                                    <th>Họ Tên</th>
-                                    <th>Trường / Khoa</th>
-                                    <th>Khóa / Lớp</th>
-                                    <th id="th-gv-col">GV Phụ Trách</th>
-                                    <th></th>
-                                </tr>
-                            </thead>
-                            <tbody id="student-list-body">
-                            </tbody>
+                            <thead><tr><th>Mã Số</th><th>Họ Tên</th><th>Trường / Khoa</th><th>Khóa / Lớp</th><th id="th-gv-col">GV Phụ Trách</th><th></th></tr></thead>
+                            <tbody id="student-list-body"></tbody>
                         </table>
-                        
                         <div style="margin-top: 25px; padding-top: 15px; border-top: 1px solid #eee;">
                             <button class="btn btn-primary" onclick="exportDataJSON()">📥 Xuất Dữ Liệu JSON</button>
                             <button class="btn btn-secondary" onclick="importDataJSON()">📤 Nhập Dữ Liệu JSON</button>
@@ -443,94 +373,96 @@
                     </div>
                 </div>
 
-                <!-- VIEW X: ASSIGN HOMEWORK (TEACHER ONLY) -->
                 <div id="view-assign" class="app-view">
                     <div class="card">
-                        <h2>📢 Giao Bài Tập Mới</h2>
+                        <h2>📢 Giao Bài Tập Mới (Assign Homework)</h2>
                         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
                             <div>
-                                <div class="form-group">
-                                    <label>Tiêu đề bài tập</label>
-                                    <input type="text" id="batch-title" class="form-control" placeholder="VD: Bài tập cuối tuần 1">
-                                </div>
-                                <div class="form-group">
-                                    <label>Đề bài (Writing Prompt)</label>
-                                    <textarea id="batch-prompt" class="form-control" rows="4" placeholder="Nhập nội dung đề bài..."></textarea>
-                                </div>
-                                <div class="form-group">
-                                    <label>Deadline (Hạn nộp)</label>
-                                    <input type="datetime-local" id="batch-deadline" class="form-control" style="width: 100%;">
-                                </div>
-                                <div class="form-group">
-                                    <label>Bộ Tiêu Chí (Rubric) Áp Dụng</label>
-                                    <select id="batch-rubric" class="form-control"></select>
-                                </div>
+                                <div class="form-group"><label>Tiêu đề bài tập</label><input type="text" id="batch-title" class="form-control" placeholder="VD: Bài tập cuối tuần 1"></div>
+                                <div class="form-group"><label>Đề bài (Writing Prompt)</label><textarea id="batch-prompt" class="form-control" rows="4" placeholder="Nhập nội dung đề bài..."></textarea></div>
+                                <div class="form-group"><label>Deadline (Hạn nộp)</label><input type="datetime-local" id="batch-deadline" class="form-control"></div>
+                                <div class="form-group"><label>Bộ Tiêu Chí (Rubric) Áp Dụng</label><select id="batch-rubric" class="form-control"></select></div>
                             </div>
-                            
                             <div style="background: #f8fafc; padding: 20px; border-radius: 8px; border: 1px solid #cbd5e1;">
                                 <div class="form-group">
-                                    <label style="color: var(--primary-color);">Chọn Đối Tượng Nhận Bài:</label>
-                                    <select id="batch-target-type" class="form-control" onchange="updateBatchTargets()" style="margin-bottom: 15px;">
-                                        <option value="class">Theo Lớp</option>
-                                        <option value="cohort">Theo Khóa</option>
-                                        <option value="department">Theo Khoa</option>
-                                        <option value="school">Theo Trường</option>
-                                        <option value="individual">Theo Từng Cá Nhân</option>
-                                    </select>
-                                    
-                                    <div id="batch-target-list" style="background: #fff; padding: 15px; border-radius: 6px; border: 1px solid #e2e8f0; max-height: 200px; overflow-y: auto;">
-                                        <!-- checkboxes generated here -->
+                                    <label style="color: var(--primary-color);">Lọc Theo Cấp Bậc:</label>
+                                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px;">
+                                        <select id="assign-f-school" class="form-control" onchange="renderAssignFilters('school')"></select>
+                                        <select id="assign-f-dept" class="form-control" onchange="renderAssignFilters('dept')"></select>
+                                        <select id="assign-f-cohort" class="form-control" onchange="renderAssignFilters('cohort')"></select>
+                                        <select id="assign-f-class" class="form-control" onchange="updateBatchTargets()"></select>
                                     </div>
+                                    <label style="color: var(--primary-color);">Loại Đối Tượng Nhận Bài:</label>
+                                    <select id="batch-target-type" class="form-control" onchange="updateBatchTargets()" style="margin-bottom: 15px;">
+                                        <option value="individual">Từng Cá Nhân</option>
+                                        <option value="class">Cả Lớp</option>
+                                        <option value="cohort">Cả Khóa</option>
+                                    </select>
+                                    <div id="batch-target-list" style="background: #fff; padding: 15px; border-radius: 6px; border: 1px solid #e2e8f0; max-height: 200px; overflow-y: auto;"></div>
                                 </div>
-                                <button class="btn btn-success" style="width: 100%; padding: 12px; font-size: 1.1em;" onclick="executeAssignHomework()">🚀 GIAO BÀI NGAY</button>
+                                <button class="btn btn-info" style="width: 100%; padding: 12px; font-size: 1.1em;" onclick="executeAssignHomework()">🚀 GIAO BÀI TẬP</button>
                             </div>
                         </div>
                     </div>
                 </div>
 
-                <!-- VIEW 2: GRADING / SUBMIT WORKSPACE -->
                 <div id="view-grading" class="app-view">
                     
-                    <div id="no-student-selected-msg" class="card btn-teacher-only" style="text-align:center; padding: 60px; color: #64748b;">
-                        <h2 style="border: none; margin-bottom: 10px;">Chưa có học viên nào được chọn</h2>
-                        <p>Vui lòng chọn một học viên từ danh sách để xem/chấm bài.</p>
-                        <button class="btn btn-primary btn-teacher-only" style="margin-top: 20px;" onclick="switchMainView('view-students')">Quay lại Danh Sách</button>
+                    <div class="card btn-teacher-admin-only" id="layout-1-filters">
+                        <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #eee; margin-bottom: 15px; padding-bottom: 10px;">
+                            <h3 style="margin:0;">🔍 Bộ Lọc Tìm Kiếm Bài Tập</h3>
+                            <button class="btn btn-secondary" onclick="renderGradingList()">🔄 Làm Mới</button>
+                        </div>
+                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px;">
+                            <select id="grad-f-school" class="form-control" onchange="renderGradingList(true, 'school')"></select>
+                            <select id="grad-f-dept" class="form-control" onchange="renderGradingList(true, 'dept')"></select>
+                            <select id="grad-f-cohort" class="form-control" onchange="renderGradingList(true, 'cohort')"></select>
+                            <select id="grad-f-class" class="form-control" onchange="renderGradingList(true, 'class')"></select>
+                            <select id="grad-f-status" class="form-control" onchange="renderGradingList()">
+                                <option value="pending" selected>📌 Cần Chấm (Đã nộp/AI chấm)</option>
+                                <option value="all">Tất cả bài tập</option>
+                                <option value="graded">✅ Đã Chấm Điểm</option>
+                                <option value="draft">⏳ Lưu Nháp / Chưa nộp</option>
+                            </select>
+                            <input type="text" id="grad-f-search" class="form-control" placeholder="Tên / Mã số SV..." onkeyup="renderGradingList()">
+                        </div>
                     </div>
 
-                    <div class="card" id="workspace-header" style="display:none;">
-                        <div style="display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 1px solid var(--border-color); padding-bottom: 15px; margin-bottom: 15px;">
-                            <div>
-                                <h2 id="active-student-title" class="header-title-student">Học viên: Chưa có</h2>
-                                <div id="student-detail-info" style="font-size: 0.9em; color: #64748b; font-weight: 500;"></div>
-                            </div>
-                            <button class="btn btn-primary btn-teacher-only" id="btn-create-assign" onclick="createNewAssignment()">+ Tự Thêm Bài Cho SV</button>
+                    <div class="card" id="layout-2-list">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                            <h3 style="margin: 0;" id="list-title-text">Danh Sách Bài Làm</h3>
+                            <button class="btn btn-primary btn-student-only" onclick="createNewAssignment()">+ Viết Bài Mới Khác</button>
                         </div>
-                        
-                        <div class="assignment-list">
-                            <h4 class="history-title">Lịch Sử Bài Tập</h4>
-                            <div id="assignment-items-container"></div>
-                        </div>
+                        <table class="student-table">
+                            <thead>
+                                <tr>
+                                    <th>Thời Gian</th>
+                                    <th class="btn-teacher-admin-only">Học Viên</th>
+                                    <th>Tiêu đề Bài Tập</th>
+                                    <th>Trạng Thái</th>
+                                    <th>Điểm</th>
+                                </tr>
+                            </thead>
+                            <tbody id="grading-all-list"></tbody>
+                        </table>
+                        <div id="empty-list-msg" style="text-align:center; padding: 20px; color:#94a3b8; display:none;">Không tìm thấy bài tập nào.</div>
                     </div>
 
                     <div id="assignment-workspace" style="display:none;">
-                        
-                        <div class="assignment-meta-box btn-teacher-only" id="assignment-meta-box-container">
-                            <div class="meta-box-title">Thiết Lập Cấu Trúc Đánh Giá (Dành Cho GV)</div>
-                            <div class="form-group">
-                                <input type="text" id="assign-title" class="form-control assign-title-input" placeholder="Tiêu đề Bài Tập (Ví dụ: Bài Thi Giữa Kỳ)">
-                            </div>
-                            <div class="form-group">
-                                <label>Ngày Giờ Làm Bài / Deadline</label>
-                                <input type="datetime-local" id="assign-date" class="form-control" style="width: auto;">
-                            </div>
-                            <div class="form-group">
-                                <textarea id="assign-desc" class="form-control" rows="2" placeholder="Mô tả hoặc yêu cầu chung..."></textarea>
-                            </div>
+                        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 15px;">
+                            <h2 style="margin:0; border:none;">Chi Tiết Bài Làm</h2>
+                            <button class="btn btn-secondary" onclick="closeWorkspace()">X Đóng Lại</button>
+                        </div>
+
+                        <div class="assignment-meta-box btn-teacher-admin-only" id="assignment-meta-box-container">
+                            <div class="meta-box-title">Thiết Lập Cấu Trúc Đánh Giá (GV/Admin)</div>
+                            <div class="form-group"><input type="text" id="assign-title" class="form-control assign-title-input" placeholder="Tiêu đề Bài Tập"></div>
+                            <div class="form-group"><label>Deadline / Giờ nộp</label><input type="datetime-local" id="assign-date" class="form-control" style="width: auto;"></div>
+                            <div class="form-group"><textarea id="assign-desc" class="form-control" rows="2" placeholder="Ghi chú thêm..."></textarea></div>
                             <div class="form-group" style="margin-bottom: 0;" id="skill-checkboxes-container">
-                                <label style="font-size: 0.85em; text-transform: uppercase;">Lựa chọn các kỹ năng cần đánh giá:</label>
-                                <div id="skill-checkboxes" style="display: flex; gap: 12px; flex-wrap: wrap; margin-top: 10px;">
-                                </div>
-                                <button class="btn btn-secondary" style="margin-top: 10px; font-size: 0.8em; padding: 6px 12px;" onclick="promptNewSkill()">+ Thêm Kỹ Năng Khác</button>
+                                <label style="font-size: 0.85em; text-transform: uppercase;">Các kỹ năng đánh giá:</label>
+                                <div id="skill-checkboxes" style="display: flex; gap: 12px; flex-wrap: wrap; margin-top: 10px;"></div>
+                                <button class="btn btn-secondary" style="margin-top: 10px; font-size: 0.8em; padding: 6px 12px;" onclick="promptNewSkill()">+ Kỹ Năng Khác</button>
                             </div>
                         </div>
                         
@@ -543,28 +475,25 @@
                         <div class="card">
                             <div class="tabs" id="dynamic-tabs-header">
                                 <button class="tab-btn active" id="tab-btn-writing" onclick="switchTab('writing-tab', this)">✍️ Writing</button>
-                                <button class="tab-btn btn-teacher-only" id="tab-btn-speaking" onclick="switchTab('speaking-tab', this)">🗣️ Speaking</button>
+                                <button class="tab-btn btn-teacher-admin-only" id="tab-btn-speaking" onclick="switchTab('speaking-tab', this)">🗣️ Speaking</button>
                                 <button class="tab-btn" id="tab-btn-rubric" onclick="switchTab('rubric-tab', this)">📊 Ma Trận Tiêu Chí</button>
-                                <!-- Custom tabs injected here -->
                                 <button class="tab-btn" id="tab-btn-summary" onclick="switchTab('summary-tab', this)">✅ Tổng Kết Điểm</button>
                             </div>
 
                             <div id="tab-contents-wrapper">
-                                <!-- TAB 1: WRITING -->
                                 <div id="writing-tab" class="tab-content active">
-                                    <div class="form-group btn-teacher-only" id="prompt-input-container">
+                                    <div class="form-group btn-teacher-admin-only" id="prompt-input-container">
                                         <label>Đề Bài Writing (Prompt)</label>
                                         <input type="text" id="assign-prompt" class="form-control" placeholder="Nhập đề bài yêu cầu tại đây...">
                                     </div>
-                                    <div class="form-group" id="student-prompt-display" style="display:none; font-weight:600; color:#4f46e5; margin-bottom: 15px; background: #e0e7ff; padding: 15px; border-radius: 8px;">
+                                    <div class="form-group btn-student-only" id="student-prompt-display" style="display:none; font-weight:600; color:#4f46e5; margin-bottom: 15px; background: #e0e7ff; padding: 15px; border-radius: 8px;">
                                         <div style="font-size: 0.85em; color: #64748b; text-transform: uppercase;">Đề bài (Prompt)</div>
                                         <div id="student-prompt-text" style="font-size: 1.1em; margin-top: 5px; color: #1e293b;"></div>
                                     </div>
                                     
                                     <div class="form-group">
                                         <label>Bài Làm Của Học Viên</label>
-                                        <div class="btn-teacher-only" id="teacher-feedback-guide" style="font-size: 0.85em; color: #64748b; margin-bottom: 8px;">(Mẹo: Bôi đen một đoạn văn bản và click vào các nút màu bên dưới để ghi chú lỗi)</div>
-                                        <div class="feedback-bar btn-teacher-only" id="feedback-bar-container">
+                                        <div class="feedback-bar btn-teacher-admin-only" id="feedback-bar-container">
                                             <button class="fb-btn fb-grammar" onclick="addFeedback('Grammar', '#ef4444')">Grammar</button>
                                             <button class="fb-btn fb-vocab" onclick="addFeedback('Vocabulary', '#3b82f6')">Vocabulary</button>
                                             <button class="fb-btn fb-spelling" onclick="addFeedback('Spelling', '#f59e0b')">Spelling</button>
@@ -574,64 +503,56 @@
                                             <button class="fb-btn fb-idea" onclick="addFeedback('Idea', '#f43f5e')">Idea</button>
                                         </div>
                                         
-                                        <div id="assign-writing-content" class="editor-container" contenteditable="true" placeholder="Học viên đánh máy bài làm vào đây..."></div>
+                                        <div id="assign-writing-content" class="editor-container" contenteditable="true" placeholder="Đánh máy bài làm vào đây..."></div>
                                         
                                         <div style="text-align: right; margin-top: 10px;">
-                                            <button class="btn btn-primary" id="btn-ai-grade-writing" onclick="gradeWithAI('writing')">✨ AI Tự Chấm Điểm & Phân Tích</button>
+                                            <button class="btn btn-primary" id="btn-ai-grade-writing" onclick="gradeWithAI('writing')">✨ AI Chấm & Phân Tích Lỗi</button>
                                         </div>
                                     </div>
 
-                                    <div class="form-group btn-teacher-only" id="ai-sample-generator-container" style="margin-top: 25px; padding: 15px; background: #e0e7ff; border-radius: 8px; border: 1px dashed #a5b4fc;">
+                                    <div class="form-group btn-teacher-admin-only" id="ai-sample-generator-container" style="margin-top: 25px; padding: 15px; background: #e0e7ff; border-radius: 8px; border: 1px dashed #a5b4fc;">
                                         <label style="color: #4338ca; font-size: 1em;">💡 Nâng Cấp Bài Viết (AI Sample Generator)</label>
-                                        <div style="font-size: 0.85em; color: #4f46e5; margin-bottom: 10px;">Sinh ra một bài viết mẫu bám sát ý tưởng của học viên nhưng đạt mức điểm Band mong muốn.</div>
                                         <div style="display: flex; gap: 10px; margin-bottom: 10px; align-items: center;">
-                                            <select id="target-band" class="form-control" style="width: 250px;">
-                                                <option value="">-- Chọn Band mục tiêu --</option>
-                                            </select>
-                                            <button class="btn btn-primary" style="margin: 0;" onclick="generateSampleEssay()">✨ Tạo Bài Mẫu Bằng AI</button>
+                                            <select id="target-band" class="form-control" style="width: 250px;"><option value="">-- Chọn Band mục tiêu --</option></select>
+                                            <button class="btn btn-primary" style="margin: 0;" onclick="generateSampleEssay()">✨ Tạo Bài Mẫu</button>
                                         </div>
-                                        <textarea id="assign-sample-essay" class="form-control" rows="6" placeholder="Bài viết mẫu do AI tạo ra sẽ hiển thị ở đây..."></textarea>
+                                        <textarea id="assign-sample-essay" class="form-control" rows="6" placeholder="Bài viết mẫu..."></textarea>
                                     </div>
                                 </div>
 
-                                <!-- TAB 2: SPEAKING (TEACHER ONLY) -->
-                                <div id="speaking-tab" class="tab-content btn-teacher-only">
+                                <div id="speaking-tab" class="tab-content btn-teacher-admin-only">
                                     <div class="form-group">
-                                        <label>Ghi Âm & Chuyển Đổi Hội Thoại Sang Văn Bản</label>
+                                        <label>Ghi Âm & Chuyển Text</label>
                                         <div class="audio-controls">
                                             <button class="btn btn-success" id="btn-start-record" onclick="startRecording()">🎤 Bắt Đầu Ghi Âm</button>
-                                            <button class="btn btn-danger" id="btn-stop-record" onclick="stopRecording()" style="display: none;">⏹ Dừng & Lưu Text</button>
+                                            <button class="btn btn-danger" id="btn-stop-record" onclick="stopRecording()" style="display: none;">⏹ Dừng</button>
                                             <span id="recording-timer" style="color: var(--danger-color); font-weight: 600; margin-left: 15px; display: none;">⏱ 00:00</span>
-                                            <button class="btn btn-primary" style="float: right; margin:0;" onclick="gradeWithAI('speaking')">✨ AI Đánh Giá Speaking</button>
+                                            <button class="btn btn-primary" style="float: right; margin:0;" onclick="gradeWithAI('speaking')">✨ AI Đánh Giá</button>
                                         </div>
-                                        <textarea id="assign-speaking-text" class="form-control" rows="10" placeholder="Nội dung hội thoại..."></textarea>
+                                        <textarea id="assign-speaking-text" class="form-control" rows="10"></textarea>
                                     </div>
                                     <div class="form-group">
-                                        <label>Nhận Xét Phân Tích Kỹ Năng Speaking</label>
+                                        <label>Nhận Xét Speaking</label>
                                         <textarea id="assign-speaking-feedback" class="form-control" rows="5"></textarea>
                                     </div>
                                 </div>
 
-                                <!-- TAB 3: RUBRIC MATRIX -->
                                 <div id="rubric-tab" class="tab-content">
                                     <div style="margin-bottom: 20px; display: flex; align-items: center; gap: 15px; flex-wrap: wrap;">
-                                        <label style="font-weight: 600; margin: 0;">Template Đánh Giá: </label>
+                                        <label style="font-weight: 600; margin: 0;">Bộ Tiêu Chí Đánh Giá: </label>
                                         <select id="rubric-template-select" class="form-control" style="width: auto; min-width: 250px;" onchange="loadSelectedTemplate()"></select>
+                                        <button class="btn btn-secondary btn-teacher-admin-only" style="margin:0;" onclick="switchMainView('view-rubrics')">⚙️ Sửa Template</button>
                                     </div>
                                     <div class="rubric-flex">
                                         <div class="rubric-main"><div class="matrix-container"><table class="matrix-table" id="matrix-table-element"></table></div></div>
-                                        <div class="rubric-sidebar"><h3 style="margin-top: 0;">Kết Quả Chấm</h3><div id="rubric-score-display"></div></div>
+                                        <div class="rubric-sidebar"><h3 style="margin-top: 0;">Kết Quả</h3><div id="rubric-score-display"></div></div>
                                     </div>
                                 </div>
 
-                                <!-- TAB 4: SUMMARY & EXPORT -->
                                 <div id="summary-tab" class="tab-content">
-                                    
-                                    <div class="form-group">
-                                        <label style="text-transform: uppercase; color: #4f46e5; font-weight: 800;">BẢNG ĐIỂM TỔNG HỢP CÁC KỸ NĂNG</label>
-                                        <div id="summary-skills-container" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; margin-bottom: 20px; background: #f8fafc; padding: 20px; border-radius: 8px; border: 1px solid var(--border-color);">
-                                            <!-- Inputs generated dynamically (read-only for students) -->
-                                        </div>
+                                    <div class="form-group btn-teacher-admin-only">
+                                        <label style="text-transform: uppercase; color: #4f46e5; font-weight: 800;">BẢNG ĐIỂM CÁC KỸ NĂNG</label>
+                                        <div id="summary-skills-container" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; margin-bottom: 20px; background: #f8fafc; padding: 20px; border-radius: 8px; border: 1px solid var(--border-color);"></div>
                                     </div>
                                     
                                     <div class="form-group">
@@ -639,20 +560,17 @@
                                             <h3 style="border:none; margin:0; padding:0; color: #4f46e5;">ĐIỂM TRUNG BÌNH (OVERALL):</h3>
                                             <div style="text-align: right;">
                                                 <span id="total-score-val" style="color: var(--danger-color); font-size: 1.8em; font-weight: bold;">0.0</span>
-                                                <div id="sum-score-val" style="font-size: 0.8em; color: #64748b;">(Tổng các môn: 0.0)</div>
                                             </div>
                                         </div>
                                     </div>
 
                                     <div class="form-group" id="summary-rubric-container">
-                                        <label>Chi Tiết Điểm Tiêu Chí Writing (Rubric)</label>
-                                        <div id="summary-rubric-scores" style="background:#fff; padding:15px; border:1px solid var(--border-color); border-radius:8px; font-size:0.95em;">
-                                            <i>Chưa có thông tin</i>
-                                        </div>
+                                        <label>Chi Tiết Điểm Tiêu Chí Writing</label>
+                                        <div id="summary-rubric-scores" style="background:#fff; padding:15px; border:1px solid var(--border-color); border-radius:8px; font-size:0.95em;"></div>
                                     </div>
 
-                                    <div class="form-group btn-teacher-only" id="summary-sample-essay-container" style="display:none;">
-                                        <label>Bài Viết Mẫu Gợi Ý (Dành cho học viên tham khảo)</label>
+                                    <div class="form-group btn-teacher-admin-only" id="summary-sample-essay-container" style="display:none;">
+                                        <label>Bài Viết Mẫu Gợi Ý</label>
                                         <div id="summary-sample-essay-content" style="background:#f0fdf4; padding:15px; border:1px solid #bbf7d0; border-radius:8px; font-size:0.95em; white-space: pre-wrap; color: #166534; line-height: 1.6;"></div>
                                     </div>
 
@@ -661,11 +579,10 @@
                                         <textarea id="assign-overall-comment" class="form-control" rows="5" placeholder="Chưa có nhận xét..."></textarea>
                                     </div>
 
-                                    <!-- BẢNG ĐIỀU KHIỂN THEO ROLE -->
                                     <div style="margin-top: 25px; padding-top: 15px; border-top: 1px solid #eee; display: flex; gap: 10px; flex-wrap: wrap;" id="action-controls-teacher">
-                                        <button class="btn btn-warning" onclick="saveAssignmentStatus('pending')">Lưu Tạm (Chưa Chấm)</button>
-                                        <button class="btn btn-success" onclick="saveAssignmentStatus('graded')">✅ Đánh Dấu: Đã Chấm Hoàn Tất</button>
-                                        <button class="btn btn-danger" onclick="saveAssignmentStatus('rejected')">❌ Từ Chối (Yêu cầu làm lại)</button>
+                                        <button class="btn btn-warning" onclick="saveAssignmentStatus('pending')">Lưu (Chưa Chấm)</button>
+                                        <button class="btn btn-success" onclick="saveAssignmentStatus('graded')">✅ Đã Chấm Xong</button>
+                                        <button class="btn btn-danger" onclick="saveAssignmentStatus('rejected')">❌ Yêu cầu sửa lại</button>
                                         <button class="btn btn-secondary" onclick="exportToPDF()">📄 In Báo Cáo PDF</button>
                                         <div style="flex-grow: 1;"></div>
                                         <button class="btn btn-danger" id="btn-delete-assign" onclick="deleteAssignment()" style="display:none;">🗑 Xóa Bài Này</button>
@@ -679,14 +596,12 @@
                                     <div style="margin-top: 25px; padding-top: 15px; border-top: 1px solid #eee; display: flex; gap: 10px; flex-wrap: wrap;" id="action-controls-admin">
                                         <button class="btn btn-secondary" onclick="exportToPDF()">📄 In Báo Cáo PDF</button>
                                     </div>
-
                                 </div>
                             </div> 
                         </div>
                     </div>
                 </div>
 
-                <!-- VIEW 3: RUBRICS MANAGEMENT (TEACHER / ADMIN) -->
                 <div id="view-rubrics" class="app-view">
                     <div class="card">
                         <h2>Tùy Chỉnh Bộ Tiêu Chí (Rubric Templates)</h2>
@@ -707,7 +622,6 @@
                     </div>
                 </div>
 
-                <!-- VIEW 4: REPORTS & CHARTS (TEACHER / ADMIN) -->
                 <div id="view-reports" class="app-view">
                     <div class="card">
                         <h2>Báo Cáo Thống Kê & Phân Tích Điểm Số</h2>
@@ -724,7 +638,6 @@
                     </div>
                 </div>
 
-                <!-- VIEW 5: CHANGE PASSWORD (STUDENT) -->
                 <div id="view-password" class="app-view">
                     <div class="card" style="max-width: 500px; margin: 40px auto;">
                         <h2>Đổi Mật Khẩu</h2>
@@ -732,7 +645,7 @@
                             <label>Mật khẩu mới</label>
                             <input type="password" id="new-password" class="form-control" placeholder="Nhập mật khẩu mới">
                         </div>
-                        <button class="btn btn-success" onclick="changeStudentPassword()">Cập Nhật Mật Khẩu</button>
+                        <button class="btn btn-success" onclick="changeUserPassword()">Cập Nhật Mật Khẩu</button>
                     </div>
                 </div>
 
@@ -747,7 +660,7 @@
 
         let dataState = {
             admins: [{ id: "admin", username: "admin", password: "123", name: "Quản Trị Viên" }],
-            teachers: [{ id: "t_gv1", username: "gv_nguyenvana", password: "123", name: "Nguyễn Văn A" }],
+            teachers: [{ id: "t_gv1", username: "gv_nguyenvana", password: "123456", name: "Nguyễn Văn A" }],
             students: [],
             availableCustomSkills: ['Reading', 'Listening'],
             organization: {},
@@ -780,29 +693,21 @@
         window.onload = function() {
             loadLocalState();
             if(dataState.admins === undefined) dataState.admins = [{ id: "admin", username: "admin", password: "123", name: "Quản Trị Viên" }];
-            if(dataState.teachers === undefined) dataState.teachers = [{ id: "t_gv1", username: "gv_nguyenvana", password: "123", name: "Nguyễn Văn A" }];
+            if(dataState.teachers === undefined) dataState.teachers = [{ id: "t_gv1", username: "gv_nguyenvana", password: "123456", name: "Nguyễn Văn A" }];
             if(!dataState.availableCustomSkills) dataState.availableCustomSkills = ['Reading', 'Listening'];
             if(!dataState.organization) dataState.organization = {};
             
-            // Normalize old data
             dataState.students.forEach(s => {
                 if(!s.teacherId) s.teacherId = dataState.teachers.length > 0 ? dataState.teachers[0].id : "admin";
                 if(!s.username) s.username = s.id;
                 if(!s.password) s.password = "123456";
-                let school = s.school || "Chưa có Trường";
-                let dept = s.department || "Chưa có Khoa";
-                let cohort = s.cohort || "Chưa có Khóa";
-                let cls = s.className || "Chưa có Lớp";
+                let school = s.school || "Chưa có Trường"; let dept = s.department || "Chưa có Khoa";
+                let cohort = s.cohort || "Chưa có Khóa"; let cls = s.className || "Chưa có Lớp";
                 if (!dataState.organization[school]) dataState.organization[school] = {};
                 if (!dataState.organization[school][dept]) dataState.organization[school][dept] = {};
                 if (!dataState.organization[school][dept][cohort]) dataState.organization[school][dept][cohort] = [];
                 if (!dataState.organization[school][dept][cohort].includes(cls)) dataState.organization[school][dept][cohort].push(cls);
-                
-                if(s.assignments) {
-                    s.assignments.forEach(a => {
-                        if(!a.status) a.status = "graded"; 
-                    });
-                }
+                if(s.assignments) s.assignments.forEach(a => { if(!a.status) a.status = "graded"; });
             });
             saveLocalState();
         };
@@ -817,16 +722,12 @@
         function handleLogin() {
             const u = document.getElementById('login-user').value.trim();
             const p = document.getElementById('login-pass').value.trim();
-            
             let adminMatch = dataState.admins.find(x => x.username === u && x.password === p);
             if (adminMatch) { currentUser = { role: 'admin', ...adminMatch }; postLoginSetup(); return; }
-
             let teacherMatch = dataState.teachers.find(x => x.username === u && x.password === p);
             if (teacherMatch) { currentUser = { role: 'teacher', ...teacherMatch }; postLoginSetup(); return; }
-
             let studentMatch = dataState.students.find(x => x.username === u && x.password === p);
             if (studentMatch) { currentUser = { role: 'student', ...studentMatch }; postLoginSetup(); return; }
-
             alert("Tài khoản hoặc mật khẩu không chính xác!");
         }
 
@@ -838,6 +739,20 @@
             document.body.className = "";
         }
 
+        function changeUserPassword() {
+            const np = document.getElementById('new-password').value;
+            if(np.trim().length < 3) { alert("Mật khẩu phải từ 3 ký tự!"); return; }
+            if (currentUser.role === 'student') {
+                dataState.students[activeStudentIndex].password = np.trim();
+            } else if (currentUser.role === 'teacher') {
+                let t = dataState.teachers.find(x => x.id === currentUser.id); if(t) t.password = np.trim();
+            } else if (currentUser.role === 'admin') {
+                let a = dataState.admins.find(x => x.id === currentUser.id); if(a) a.password = np.trim();
+            }
+            currentUser.password = np.trim();
+            saveLocalState(); alert("Đổi mật khẩu thành công!"); document.getElementById('new-password').value = "";
+        }
+
         function postLoginSetup() {
             document.getElementById('login-view').style.display = 'none';
             document.getElementById('main-app').style.display = 'flex';
@@ -845,38 +760,38 @@
             const sideNav = document.getElementById('side-nav');
             
             if (currentUser.role === 'admin') {
-                document.body.classList.remove('role-student');
+                document.body.classList.remove('role-student', 'role-teacher');
+                document.body.classList.add('role-admin');
                 sideNav.innerHTML = `
                     <a href="#" class="nav-item active" data-view="view-teachers" onclick="switchMainView('view-teachers')">👨‍🏫 Quản Lý Giảng Viên</a>
                     <a href="#" class="nav-item" data-view="view-students" onclick="switchMainView('view-students')">👥 Quản Lý Học Viên</a>
+                    <a href="#" class="nav-item" data-view="view-grading" onclick="switchMainView('view-grading')">📝 Quản Lý Bài Tập SV</a>
                     <a href="#" class="nav-item" data-view="view-rubrics" onclick="switchMainView('view-rubrics')">📋 Quản Lý Tiêu Chí</a>
                     <a href="#" class="nav-item" data-view="view-reports" onclick="switchMainView('view-reports')">📈 Báo Cáo Thống Kê</a>
+                    <a href="#" class="nav-item" data-view="view-password" onclick="switchMainView('view-password')">🔒 Đổi Mật Khẩu</a>
                 `;
                 document.getElementById('teacher-select-group').style.display = 'block';
                 if (document.getElementById('std-teacher')) populateSelect(document.getElementById('std-teacher'), dataState.teachers.map(t => t.name));
                 renderTeacherList(); renderOrgDropdowns('none'); renderStudentList(); initTemplateSelect();
                 switchMainView('view-teachers');
             } else if (currentUser.role === 'teacher') {
-                document.body.classList.remove('role-student');
+                document.body.classList.remove('role-student', 'role-admin');
+                document.body.classList.add('role-teacher');
                 sideNav.innerHTML = `
                     <a href="#" class="nav-item active" data-view="view-students" onclick="switchMainView('view-students')">👥 Quản Lý Học Viên</a>
                     <a href="#" class="nav-item" data-view="view-assign" onclick="switchMainView('view-assign')">📢 Giao Bài Tập</a>
                     <a href="#" class="nav-item" data-view="view-grading" onclick="switchMainView('view-grading')">📝 Bài Tập & Chấm Điểm</a>
                     <a href="#" class="nav-item" data-view="view-rubrics" onclick="switchMainView('view-rubrics')">📋 Quản Lý Tiêu Chí</a>
                     <a href="#" class="nav-item" data-view="view-reports" onclick="switchMainView('view-reports')">📈 Báo Cáo Thống Kê</a>
+                    <a href="#" class="nav-item" data-view="view-password" onclick="switchMainView('view-password')">🔒 Đổi Mật Khẩu</a>
                 `;
                 document.getElementById('teacher-select-group').style.display = 'none';
-                
-                // Cập nhật rubric dropdown cho màn hình Giao Bài
                 initTemplateSelect(); 
-                if (document.getElementById('batch-rubric')) {
-                    document.getElementById('batch-rubric').innerHTML = document.getElementById('rubric-template-select').innerHTML;
-                }
-
-                renderOrgDropdowns('none'); renderStudentList(); setupTooltipListeners();
-                updateBatchTargets();
+                if (document.getElementById('batch-rubric')) document.getElementById('batch-rubric').innerHTML = document.getElementById('rubric-template-select').innerHTML;
+                renderOrgDropdowns('none'); renderStudentList(); setupTooltipListeners(); updateBatchTargets();
                 switchMainView('view-students');
             } else {
+                document.body.classList.remove('role-teacher', 'role-admin');
                 document.body.classList.add('role-student');
                 sideNav.innerHTML = `
                     <a href="#" class="nav-item active" data-view="view-grading" onclick="switchMainView('view-grading')">📝 Nộp Bài & Lịch Sử</a>
@@ -885,21 +800,17 @@
                 activeStudentIndex = dataState.students.findIndex(s => s.id === currentUser.id);
                 initTemplateSelect(); setupTooltipListeners();
                 
-                document.getElementById('workspace-header').style.display = 'block';
-                document.getElementById('active-student-title').innerText = `Hồ sơ học tập: ${currentUser.name}`;
-                document.getElementById('student-detail-info').innerText = `${currentUser.school||''} | ${currentUser.className||''}`;
-                document.getElementById('btn-create-assign').style.display = 'none'; // Học viên không tự tạo assignment trắng được
-                
-                renderAssignmentList();
+                document.getElementById('list-title-text').innerText = "Danh Sách Bài Của Bạn";
+                document.getElementById('workspace-header').style.display = 'none';
                 document.getElementById('assignment-workspace').style.display = 'none';
+                
+                renderGradingList(); 
                 switchMainView('view-grading');
             }
         }
 
-        function showLoading(text) {
-            document.getElementById('loading-message').innerText = text || "Đang xử lý...";
-            document.getElementById('loading-overlay').classList.add('active');
-        }
+        // UTILS
+        function showLoading(text) { document.getElementById('loading-message').innerText = text || "Đang xử lý..."; document.getElementById('loading-overlay').classList.add('active'); }
         function hideLoading() { document.getElementById('loading-overlay').classList.remove('active'); }
         function toggleSidebar() { document.getElementById('side-nav').classList.toggle('collapsed'); }
 
@@ -916,243 +827,232 @@
                 updateBatchTargets();
                 const now = new Date(); now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
                 document.getElementById('batch-deadline').value = now.toISOString().slice(0,16);
+                // Cập nhật lại list filters cho tab Assign dựa theo HS của GV
+                populateAssignFilters();
             }
             else if (viewId === 'view-grading') {
-                if((currentUser.role === 'teacher' || currentUser.role === 'admin') && activeStudentIndex === null) {
-                    document.getElementById('no-student-selected-msg').style.display = 'block';
+                if (currentUser.role === 'student') {
+                    document.getElementById('no-student-selected-msg').style.display = 'none';
                     document.getElementById('workspace-header').style.display = 'none';
-                    document.getElementById('assignment-workspace').style.display = 'none';
+                    renderGradingList();
                 } else {
                     document.getElementById('no-student-selected-msg').style.display = 'none';
-                    document.getElementById('workspace-header').style.display = 'block';
+                    document.getElementById('workspace-header').style.display = 'none';
+                    document.getElementById('assignment-workspace').style.display = 'none';
+                    populateGradingFilters();
+                    renderGradingList();
                 }
             }
         }
 
-        // --- ADMIN TEACHER MGMT ---
-        function updateTeacherDropdown() {
-            if (document.getElementById('std-teacher')) populateSelect(document.getElementById('std-teacher'), dataState.teachers.map(t => t.name));
+        // --- NEW GRADING LIST (LAYOUT 1 & 2) ---
+        function getMyStudents() {
+            if (currentUser.role === 'admin') return dataState.students;
+            if (currentUser.role === 'teacher') return dataState.students.filter(s => s.teacherId === currentUser.id);
+            return [];
         }
 
-        function renderTeacherList() {
-            const tbody = document.getElementById('teacher-list-body'); tbody.innerHTML = '';
-            dataState.teachers.forEach((t, index) => {
-                const tr = document.createElement('tr'); tr.onclick = () => selectTeacher(index);
-                tr.innerHTML = `<td>${t.username}</td><td>${t.name}</td><td>${t.password}</td>
-                <td><span style="color:var(--danger-color);font-weight:bold;cursor:pointer;font-size:1.2em;" onclick="event.stopPropagation(); deleteTeacher(${index});">✕</span></td>`;
-                tbody.appendChild(tr);
-            });
-        }
-        function saveTeacher() {
-            const idx = document.getElementById('teacher-idx').value;
-            const tData = {
-                id: document.getElementById('tc-username').value, username: document.getElementById('tc-username').value,
-                name: document.getElementById('tc-name').value, password: document.getElementById('tc-password').value
-            };
-            if(idx === "") dataState.teachers.push(tData); else dataState.teachers[idx] = tData;
-            saveLocalState(); renderTeacherList(); resetTeacherForm(); updateTeacherDropdown();
-        }
-        function selectTeacher(index) {
-            document.getElementById('teacher-idx').value = index; const t = dataState.teachers[index];
-            document.getElementById('tc-username').value = t.username; document.getElementById('tc-name').value = t.name; document.getElementById('tc-password').value = t.password;
-        }
-        function deleteTeacher(index) {
-            if(confirm("Xóa giảng viên này? Các học viên của GV này sẽ không có người phụ trách.")) {
-                dataState.teachers.splice(index, 1); saveLocalState(); renderTeacherList(); resetTeacherForm(); updateTeacherDropdown();
-            }
-        }
-        function resetTeacherForm() {
-            document.getElementById('teacher-idx').value = ""; document.getElementById('tc-username').value = "";
-            document.getElementById('tc-name').value = ""; document.getElementById('tc-password').value = "123456";
+        function getUniqueValues(arr, key) { return [...new Set(arr.map(item => item[key]).filter(Boolean))]; }
+
+        function populateGradingFilters() {
+            const students = getMyStudents();
+            populateSelect(document.getElementById('grad-f-school'), [''].concat(getUniqueValues(students, 'school'))); document.getElementById('grad-f-school').options[0].text = "Tất cả Trường";
+            populateSelect(document.getElementById('grad-f-dept'), [''].concat(getUniqueValues(students, 'department'))); document.getElementById('grad-f-dept').options[0].text = "Tất cả Khoa";
+            populateSelect(document.getElementById('grad-f-cohort'), [''].concat(getUniqueValues(students, 'cohort'))); document.getElementById('grad-f-cohort').options[0].text = "Tất cả Khóa";
+            populateSelect(document.getElementById('grad-f-class'), [''].concat(getUniqueValues(students, 'className'))); document.getElementById('grad-f-class').options[0].text = "Tất cả Lớp";
         }
 
-        // --- HIERARCHY ORG LOGIC ---
-        function populateSelect(selectEl, optionsArray) {
-            const currentVal = selectEl.value; selectEl.innerHTML = '';
-            optionsArray.forEach(opt => { let option = document.createElement('option'); option.value = opt; option.innerText = opt; selectEl.appendChild(option); });
-            if (optionsArray.includes(currentVal)) selectEl.value = currentVal; else if (optionsArray.length > 0) selectEl.value = optionsArray[0];
-        }
-
-        function renderOrgDropdowns(levelChanged = 'none') {
-            const org = dataState.organization;
-            const schoolSel = document.getElementById('std-school'); const deptSel = document.getElementById('std-department');
-            const cohortSel = document.getElementById('std-cohort'); const classSel = document.getElementById('std-class');
+        function renderGradingList(isFilterChange = false, filterLevel = '') {
+            const tbody = document.getElementById('grading-all-list'); tbody.innerHTML = '';
             
-            let schools = Object.keys(org);
-            if(schools.length === 0) { schools = ["Đại học Mặc Định"]; org["Đại học Mặc Định"] = { "Khoa Mặc Định": { "Khóa Mặc Định": ["Lớp Mặc Định"] } }; }
-            if(levelChanged === 'none') populateSelect(schoolSel, schools);
-            
-            let currentSchool = schoolSel.value || schools[0];
-            if(levelChanged === 'none' || levelChanged === 'school') {
-                let depts = Object.keys(org[currentSchool] || {});
-                if(depts.length === 0) { depts = ["Khoa Mặc Định"]; org[currentSchool]["Khoa Mặc Định"] = {"Khóa Mặc Định":["Lớp Mặc Định"]}; }
-                populateSelect(deptSel, depts);
-            }
-            let currentDept = deptSel.value;
-            
-            if(levelChanged === 'none' || levelChanged === 'school' || levelChanged === 'dept') {
-                let cohorts = Object.keys(org[currentSchool][currentDept] || {});
-                if(cohorts.length === 0) { cohorts = ["Khóa Mặc Định"]; org[currentSchool][currentDept]["Khóa Mặc Định"] = ["Lớp Mặc Định"]; }
-                populateSelect(cohortSel, cohorts);
-            }
-            let currentCohort = cohortSel.value;
-            
-            let classes = org[currentSchool][currentDept][currentCohort] || [];
-            if(classes.length === 0) { classes = ["Lớp Mặc Định"]; org[currentSchool][currentDept][currentCohort].push("Lớp Mặc Định"); }
-            populateSelect(classSel, classes);
-        }
-
-        function handleOrgChange(level) { renderOrgDropdowns(level); }
-
-        function addOrgItem(level) {
-            let name = prompt("Nhập tên mới:"); if(!name || !name.trim()) return; name = name.trim(); const org = dataState.organization;
-            const school = document.getElementById('std-school').value; const dept = document.getElementById('std-department').value; const cohort = document.getElementById('std-cohort').value;
-            if(level === 'school') { if(!org[name]) org[name] = {}; document.getElementById('std-school').innerHTML += `<option value="${name}">${name}</option>`; document.getElementById('std-school').value = name; handleOrgChange('school'); } 
-            else if (level === 'dept') { if(!org[school][name]) org[school][name] = {}; document.getElementById('std-department').innerHTML += `<option value="${name}">${name}</option>`; document.getElementById('std-department').value = name; handleOrgChange('dept'); } 
-            else if (level === 'cohort') { if(!org[school][dept][name]) org[school][dept][name] = []; document.getElementById('std-cohort').innerHTML += `<option value="${name}">${name}</option>`; document.getElementById('std-cohort').value = name; handleOrgChange('cohort'); } 
-            else if (level === 'class') { if(!org[school][dept][cohort].includes(name)) org[school][dept][cohort].push(name); document.getElementById('std-class').innerHTML += `<option value="${name}">${name}</option>`; document.getElementById('std-class').value = name; }
-            saveLocalState();
-        }
-
-        function deleteOrgItem(level) {
-            const org = dataState.organization; const school = document.getElementById('std-school').value;
-            const dept = document.getElementById('std-department').value; const cohort = document.getElementById('std-cohort').value; const cls = document.getElementById('std-class').value;
-
-            if (level === 'class') {
-                if (!cls) return;
-                const hasStudents = dataState.students.some(s => s.school === school && s.department === dept && s.cohort === cohort && s.className === cls);
-                if (hasStudents) { alert("⚠️ Không thể xóa Lớp này vì vẫn còn sinh viên."); return; }
-                if (confirm(`Xác nhận xóa Lớp: ${cls}?`)) { org[school][dept][cohort] = org[school][dept][cohort].filter(c => c !== cls); handleOrgChange('cohort'); }
-            } else if (level === 'cohort') {
-                const classes = org[school][dept][cohort] || [];
-                if (classes.length > 0 && !(classes.length===1 && classes[0]==="Lớp Mặc Định")) { alert("⚠️ Xóa hết các Lớp trước."); return; }
-                if (confirm(`Xác nhận xóa Khóa: ${cohort}?`)) { delete org[school][dept][cohort]; handleOrgChange('dept'); }
-            } else if (level === 'dept') {
-                const cohorts = Object.keys(org[school][dept] || {});
-                if (cohorts.length > 0 && !(cohorts.length===1 && cohorts[0]==="Khóa Mặc Định")) { alert("⚠️ Xóa hết các Khóa trước."); return; }
-                if (confirm(`Xác nhận xóa Khoa: ${dept}?`)) { delete org[school][dept]; handleOrgChange('school'); }
-            } else if (level === 'school') {
-                const depts = Object.keys(org[school] || {});
-                if (depts.length > 0 && !(depts.length===1 && depts[0]==="Khoa Mặc Định")) { alert("⚠️ Xóa hết các Khoa trước."); return; }
-                if (confirm(`Xác nhận xóa Trường: ${school}?`)) { delete org[school]; renderOrgDropdowns('none'); }
-            }
-            saveLocalState();
-        }
-
-        // --- STUDENT MGMT ---
-        function renderStudentList() {
-            const tbody = document.getElementById('student-list-body'); tbody.innerHTML = '';
-            const searchInput = document.getElementById('search-student'); const searchTerm = searchInput ? searchInput.value.toLowerCase() : '';
-            
-            let studentsToRender = dataState.students;
-            if (currentUser.role === 'teacher') studentsToRender = dataState.students.filter(s => s.teacherId === currentUser.id);
-
-            studentsToRender.forEach((student) => {
-                const globalIndex = dataState.students.indexOf(student);
-                if (searchTerm) {
-                    const matchName = student.name && student.name.toLowerCase().includes(searchTerm);
-                    const matchId = student.id && student.id.toLowerCase().includes(searchTerm);
-                    if (!matchName && !matchId) return;
-                }
-                const tr = document.createElement('tr');
-                if (globalIndex === activeStudentIndex) tr.className = 'selected-student';
-                tr.onclick = () => selectStudent(globalIndex);
+            let students = [];
+            if (currentUser.role === 'student') {
+                students = [dataState.students[activeStudentIndex]];
+            } else {
+                students = getMyStudents();
                 
-                let gvText = "";
-                if(currentUser.role === 'admin') { let gv = dataState.teachers.find(t => t.id === student.teacherId); gvText = `<td>${gv ? gv.name : 'N/A'}</td>`; }
+                // Cascade filters logic for Layout 1
+                const fSchool = document.getElementById('grad-f-school').value;
+                const fDept = document.getElementById('grad-f-dept').value;
+                const fCohort = document.getElementById('grad-f-cohort').value;
+                const fClass = document.getElementById('grad-f-class').value;
+                
+                if (isFilterChange) {
+                    let filtered = students;
+                    if(fSchool) filtered = filtered.filter(s => s.school === fSchool);
+                    if(filterLevel === 'school') {
+                        populateSelect(document.getElementById('grad-f-dept'), [''].concat(getUniqueValues(filtered, 'department'))); document.getElementById('grad-f-dept').options[0].text = "Tất cả Khoa";
+                        populateSelect(document.getElementById('grad-f-cohort'), [''].concat(getUniqueValues(filtered, 'cohort'))); document.getElementById('grad-f-cohort').options[0].text = "Tất cả Khóa";
+                        populateSelect(document.getElementById('grad-f-class'), [''].concat(getUniqueValues(filtered, 'className'))); document.getElementById('grad-f-class').options[0].text = "Tất cả Lớp";
+                    }
+                    if(fDept) filtered = filtered.filter(s => s.department === fDept);
+                    if(filterLevel === 'dept') {
+                        populateSelect(document.getElementById('grad-f-cohort'), [''].concat(getUniqueValues(filtered, 'cohort'))); document.getElementById('grad-f-cohort').options[0].text = "Tất cả Khóa";
+                        populateSelect(document.getElementById('grad-f-class'), [''].concat(getUniqueValues(filtered, 'className'))); document.getElementById('grad-f-class').options[0].text = "Tất cả Lớp";
+                    }
+                    if(fCohort) filtered = filtered.filter(s => s.cohort === fCohort);
+                    if(filterLevel === 'cohort') {
+                        populateSelect(document.getElementById('grad-f-class'), [''].concat(getUniqueValues(filtered, 'className'))); document.getElementById('grad-f-class').options[0].text = "Tất cả Lớp";
+                    }
+                }
 
+                // Apply Hard Filters for display
+                if(document.getElementById('grad-f-school').value) students = students.filter(s => s.school === document.getElementById('grad-f-school').value);
+                if(document.getElementById('grad-f-dept').value) students = students.filter(s => s.department === document.getElementById('grad-f-dept').value);
+                if(document.getElementById('grad-f-cohort').value) students = students.filter(s => s.cohort === document.getElementById('grad-f-cohort').value);
+                if(document.getElementById('grad-f-class').value) students = students.filter(s => s.className === document.getElementById('grad-f-class').value);
+
+                const searchText = document.getElementById('grad-f-search').value.toLowerCase();
+                if (searchText) {
+                    students = students.filter(s => s.name.toLowerCase().includes(searchText) || s.id.toLowerCase().includes(searchText));
+                }
+            }
+
+            let allAssignments = [];
+            students.forEach(s => {
+                const sIdx = dataState.students.indexOf(s);
+                if(s.assignments) {
+                    s.assignments.forEach((a, aIdx) => {
+                        allAssignments.push({ student: s, sIdx: sIdx, assign: a, aIdx: aIdx });
+                    });
+                }
+            });
+
+            // Filter by Status
+            let statusFilter = "all";
+            if(currentUser.role !== 'student' && document.getElementById('grad-f-status')) {
+                statusFilter = document.getElementById('grad-f-status').value;
+            }
+
+            if (statusFilter === 'needs_grading') {
+                allAssignments = allAssignments.filter(x => x.assign.status === 'pending' || x.assign.status === 'ai_graded');
+            } else if (statusFilter === 'graded') {
+                allAssignments = allAssignments.filter(x => x.assign.status === 'graded' || x.assign.status === 'rejected');
+            } else if (statusFilter === 'assigned') {
+                allAssignments = allAssignments.filter(x => x.assign.status === 'assigned' || x.assign.status === 'draft' || !x.assign.status);
+            }
+
+            // Sort by Date DESC
+            allAssignments.sort((a,b) => {
+                let d1 = new Date(a.assign.date || 0); let d2 = new Date(b.assign.date || 0); return d2 - d1;
+            });
+
+            if (allAssignments.length === 0) {
+                document.getElementById('empty-list-msg').style.display = 'block';
+            } else {
+                document.getElementById('empty-list-msg').style.display = 'none';
+            }
+
+            const statusMap = {
+                'assigned': currentUser.role === 'student' ? '<span class="status-badge status-assigned">Cần Làm</span>' : '<span class="status-badge status-assigned">Mới Giao</span>',
+                'draft': '<span class="status-badge status-draft">Lưu Nháp</span>',
+                'pending': '<span class="status-badge status-pending">Chờ Chấm</span>',
+                'ai_graded': '<span class="status-badge status-ai_graded">Đã Chấm AI</span>',
+                'graded': '<span class="status-badge status-graded">Đã Chấm</span>',
+                'rejected': '<span class="status-badge status-rejected">Từ Chối / Sửa Lại</span>'
+            };
+
+            allAssignments.forEach(item => {
+                const tr = document.createElement('tr');
+                tr.onclick = () => loadAssignmentForGrading(item.sIdx, item.aIdx);
+                const titleText = item.assign.title || item.assign.prompt || 'Bài Tập Chưa Đặt Tên';
+                const dateText = item.assign.date ? item.assign.date.replace('T', ' ') : '-';
+                const badge = statusMap[item.assign.status] || statusMap['draft'];
+                
+                let svCol = currentUser.role !== 'student' ? `<td><strong>${item.student.name}</strong><br><small>${item.student.id} | ${item.student.className || ''}</small></td>` : '';
+                
                 tr.innerHTML = `
-                    <td><strong>${student.id}</strong></td><td>${student.name}</td>
-                    <td>${student.school || '-'} <br> <small>${student.department || '-'}</small></td>
-                    <td>${student.cohort || '-'} <br> <small>${student.className || '-'}</small></td>
-                    ${gvText}
-                    <td><span style="color:var(--danger-color);font-weight:bold;cursor:pointer;font-size:1.2em;" onclick="event.stopPropagation(); deleteStudent(${globalIndex});">✕</span></td>
+                    <td><small>${dateText}</small></td>
+                    ${svCol}
+                    <td style="color:var(--primary-color); font-weight:600;">${titleText}</td>
+                    <td>${badge}</td>
+                    <td><strong>${item.assign.totalScore || '-'}</strong></td>
                 `;
                 tbody.appendChild(tr);
             });
-            if(currentUser.role !== 'admin') { const thGv = document.getElementById('th-gv-col'); if(thGv) thGv.style.display = 'none'; }
         }
 
-        function saveStudent() {
-            const idx = document.getElementById('student-idx').value;
-            let tId = currentUser.id;
-            if(currentUser.role === 'admin') {
-                const tName = document.getElementById('std-teacher').value;
-                const tObj = dataState.teachers.find(t => t.name === tName); if(tObj) tId = tObj.id;
+        function loadAssignmentForGrading(sIdx, aIdx) {
+            activeStudentIndex = sIdx;
+            
+            // Show workspace
+            document.getElementById('workspace-header').style.display = 'none'; // hide old header
+            document.getElementById('assignment-workspace').style.display = 'block';
+            
+            loadAssignment(aIdx);
+            document.getElementById('assignment-workspace').scrollIntoView({behavior: 'smooth'});
+        }
+
+        function closeWorkspace() {
+            document.getElementById('assignment-workspace').style.display = 'none';
+            activeAssignmentIndex = null;
+            renderGradingList(); // Refresh list to catch any status updates
+            document.getElementById('layout-2-list').scrollIntoView({behavior: 'smooth'});
+        }
+
+        // --- ASSIGN HOMEWORK CASCADING (TEACHER) ---
+        function populateAssignFilters() {
+            const students = getMyStudents();
+            populateSelect(document.getElementById('assign-f-school'), [''].concat(getUniqueValues(students, 'school'))); document.getElementById('assign-f-school').options[0].text = "Tất cả Trường";
+            populateSelect(document.getElementById('assign-f-dept'), [''].concat(getUniqueValues(students, 'department'))); document.getElementById('assign-f-dept').options[0].text = "Tất cả Khoa";
+            populateSelect(document.getElementById('assign-f-cohort'), [''].concat(getUniqueValues(students, 'cohort'))); document.getElementById('assign-f-cohort').options[0].text = "Tất cả Khóa";
+            populateSelect(document.getElementById('assign-f-class'), [''].concat(getUniqueValues(students, 'className'))); document.getElementById('assign-f-class').options[0].text = "Tất cả Lớp";
+            updateBatchTargets();
+        }
+
+        function renderAssignFilters(filterLevel) {
+            let students = getMyStudents();
+            const fSchool = document.getElementById('assign-f-school').value;
+            const fDept = document.getElementById('assign-f-dept').value;
+            const fCohort = document.getElementById('assign-f-cohort').value;
+            
+            if(fSchool) students = students.filter(s => s.school === fSchool);
+            if(filterLevel === 'school') {
+                populateSelect(document.getElementById('assign-f-dept'), [''].concat(getUniqueValues(students, 'department'))); document.getElementById('assign-f-dept').options[0].text = "Tất cả Khoa";
+                populateSelect(document.getElementById('assign-f-cohort'), [''].concat(getUniqueValues(students, 'cohort'))); document.getElementById('assign-f-cohort').options[0].text = "Tất cả Khóa";
+                populateSelect(document.getElementById('assign-f-class'), [''].concat(getUniqueValues(students, 'className'))); document.getElementById('assign-f-class').options[0].text = "Tất cả Lớp";
             }
-
-            const studentData = {
-                teacherId: tId, school: document.getElementById('std-school').value, department: document.getElementById('std-department').value,
-                cohort: document.getElementById('std-cohort').value, className: document.getElementById('std-class').value,
-                id: document.getElementById('std-id').value, username: document.getElementById('std-id').value,
-                name: document.getElementById('std-name').value, level: document.getElementById('std-level').value,
-                assignments: idx !== "" ? dataState.students[idx].assignments : [], password: idx !== "" ? dataState.students[idx].password : "123456"
-            };
-
-            if (idx === "") dataState.students.push(studentData); else dataState.students[idx] = studentData;
-            saveLocalState(); renderStudentList(); resetStudentForm(); alert("Đã lưu thông tin học viên! Mật khẩu mặc định: 123456");
-        }
-
-        function selectStudent(index) {
-            activeStudentIndex = index; renderStudentList(); const student = dataState.students[index];
-            
-            document.getElementById('workspace-header').style.display = 'block';
-            document.getElementById('active-student-title').innerText = `Học viên: ${student.name} (${student.id})`;
-            document.getElementById('student-detail-info').innerText = `${student.school || '-'} | Khoa: ${student.department || '-'} | Khóa: ${student.cohort} | Lớp: ${student.className} | Level: ${student.level}`;
-            
-            document.getElementById('student-idx').value = index;
-            if(student.school) document.getElementById('std-school').value = student.school; handleOrgChange('school');
-            if(student.department) document.getElementById('std-department').value = student.department; handleOrgChange('dept');
-            if(student.cohort) document.getElementById('std-cohort').value = student.cohort; handleOrgChange('cohort');
-            if(student.className) document.getElementById('std-class').value = student.className;
-
-            document.getElementById('std-id').value = student.id; document.getElementById('std-name').value = student.name;
-            document.getElementById('std-level').value = student.level;
-            
-            if(currentUser.role === 'admin') { let gv = dataState.teachers.find(t => t.id === student.teacherId); if(gv) document.getElementById('std-teacher').value = gv.name; }
-
-            document.getElementById('btn-save-student').innerText = "Cập Nhật Học Viên";
-            renderAssignmentList(); document.getElementById('assignment-workspace').style.display = 'none';
-            switchMainView('view-grading');
-        }
-
-        function deleteStudent(index) {
-            if (confirm("Xác nhận xóa học viên này cùng toàn bộ lịch sử bài tập?")) {
-                dataState.students.splice(index, 1); if (activeStudentIndex === index) activeStudentIndex = null;
-                saveLocalState(); renderStudentList(); resetStudentForm();
+            if(fDept) students = students.filter(s => s.department === fDept);
+            if(filterLevel === 'dept') {
+                populateSelect(document.getElementById('assign-f-cohort'), [''].concat(getUniqueValues(students, 'cohort'))); document.getElementById('assign-f-cohort').options[0].text = "Tất cả Khóa";
+                populateSelect(document.getElementById('assign-f-class'), [''].concat(getUniqueValues(students, 'className'))); document.getElementById('assign-f-class').options[0].text = "Tất cả Lớp";
             }
+            if(fCohort) students = students.filter(s => s.cohort === fCohort);
+            if(filterLevel === 'cohort') {
+                populateSelect(document.getElementById('assign-f-class'), [''].concat(getUniqueValues(students, 'className'))); document.getElementById('assign-f-class').options[0].text = "Tất cả Lớp";
+            }
+            updateBatchTargets();
         }
 
-        function resetStudentForm() {
-            document.getElementById('student-idx').value = ""; document.getElementById('std-id').value = "";
-            document.getElementById('std-name').value = ""; document.getElementById('std-level').value = "";
-            document.getElementById('btn-save-student').innerText = "Thêm Học Viên Mới";
-        }
-
-        function changeStudentPassword() {
-            const np = document.getElementById('new-password').value;
-            if(np.trim().length < 3) { alert("Mật khẩu phải từ 3 ký tự!"); return; }
-            dataState.students[activeStudentIndex].password = np.trim(); currentUser.password = np.trim();
-            saveLocalState(); alert("Đổi mật khẩu thành công!"); document.getElementById('new-password').value = "";
-        }
-
-        // --- GIAO BÀI (ASSIGN HOMEWORK) ---
         function updateBatchTargets() {
             const type = document.getElementById('batch-target-type').value;
             const container = document.getElementById('batch-target-list'); container.innerHTML = '';
             
+            let students = getMyStudents();
+            const fSchool = document.getElementById('assign-f-school').value;
+            const fDept = document.getElementById('assign-f-dept').value;
+            const fCohort = document.getElementById('assign-f-cohort').value;
+            const fClass = document.getElementById('assign-f-class').value;
+
+            if(fSchool) students = students.filter(s => s.school === fSchool);
+            if(fDept) students = students.filter(s => s.department === fDept);
+            if(fCohort) students = students.filter(s => s.cohort === fCohort);
+            if(fClass) students = students.filter(s => s.className === fClass);
+
             let options = new Set();
-            let myStudents = currentUser.role === 'admin' ? dataState.students : dataState.students.filter(s => s.teacherId === currentUser.id);
-            
-            myStudents.forEach(s => {
+            students.forEach(s => {
                 if (type === 'individual') options.add(s.id + ' | ' + s.name);
                 else if (type === 'class') options.add(s.className);
                 else if (type === 'cohort') options.add(s.cohort);
-                else if (type === 'department') options.add(s.department);
-                else if (type === 'school') options.add(s.school);
             });
             
-            Array.from(options).filter(Boolean).forEach(opt => {
+            const arr = Array.from(options).filter(Boolean);
+            if (arr.length === 0) {
+                container.innerHTML = "<i>Không có dữ liệu phù hợp với bộ lọc hiện tại.</i>";
+                return;
+            }
+            
+            arr.forEach(opt => {
                 container.innerHTML += `<label style="display:block; margin-bottom:8px; cursor:pointer;"><input type="checkbox" value="${opt}" class="batch-target-cb" checked> ${opt}</label>`;
             });
         }
@@ -1167,18 +1067,16 @@
             if(!title) { alert("Vui lòng nhập tiêu đề bài tập!"); return; }
 
             const selectedTargets = Array.from(document.querySelectorAll('.batch-target-cb:checked')).map(cb => cb.value);
-            if(selectedTargets.length === 0) { alert("Vui lòng chọn ít nhất 1 đối tượng giao bài!"); return; }
+            if(selectedTargets.length === 0) { alert("Vui lòng chọn ít nhất 1 đối tượng nhận bài!"); return; }
 
             let count = 0;
-            let myStudents = currentUser.role === 'admin' ? dataState.students : dataState.students.filter(s => s.teacherId === currentUser.id);
+            let myStudents = getMyStudents();
 
             myStudents.forEach(s => {
                 let match = false;
                 if (type === 'individual' && selectedTargets.includes(s.id + ' | ' + s.name)) match = true;
                 else if (type === 'class' && selectedTargets.includes(s.className)) match = true;
                 else if (type === 'cohort' && selectedTargets.includes(s.cohort)) match = true;
-                else if (type === 'department' && selectedTargets.includes(s.department)) match = true;
-                else if (type === 'school' && selectedTargets.includes(s.school)) match = true;
 
                 if (match) {
                     if(!s.assignments) s.assignments = [];
@@ -1198,54 +1096,63 @@
             } else { alert("Không tìm thấy học viên nào phù hợp."); }
         }
 
-        // --- ASSIGNMENTS ---
-        function renderAssignmentList() {
-            const container = document.getElementById('assignment-items-container');
-            container.innerHTML = '';
-            const student = dataState.students[activeStudentIndex];
-            
-            if (!student.assignments || student.assignments.length === 0) {
-                container.innerHTML = '<p style="color:#94a3b8; font-style:italic;">Chưa có bài tập nào được ghi nhận.</p>'; return;
+        // --- ADMIN TEACHER MGMT ---
+        function updateTeacherDropdown() {
+            if (document.getElementById('std-teacher')) {
+                populateSelect(document.getElementById('std-teacher'), dataState.teachers.map(t => t.name));
             }
-
-            const statusMap = {
-                'assigned': currentUser.role === 'student' ? '<span class="status-badge status-assigned">Cần Làm</span>' : '<span class="status-badge status-assigned">Mới Giao</span>',
-                'draft': '<span class="status-badge status-draft">Lưu Nháp</span>',
-                'pending': '<span class="status-badge status-pending">Chờ Chấm</span>',
-                'ai_graded': '<span class="status-badge status-ai_graded">Đã Chấm AI</span>',
-                'graded': '<span class="status-badge status-graded">Đã Chấm</span>',
-                'rejected': '<span class="status-badge status-rejected">Từ Chối / Sửa Lại</span>'
-            };
-
-            student.assignments.forEach((assign, index) => {
-                const item = document.createElement('div');
-                item.className = 'assignment-item';
-                item.onclick = () => loadAssignment(index);
-                
-                let skillsText = [];
-                if (assign.hasWriting !== false && assign.scoreWriting) skillsText.push(`W: ${assign.scoreWriting}`);
-                if (assign.hasSpeaking !== false && assign.scoreSpeaking) skillsText.push(`S: ${assign.scoreSpeaking}`);
-                if (assign.dynamicScoresObj) {
-                    for (let k in assign.dynamicScoresObj) { if (assign.dynamicScoresObj[k].score) skillsText.push(`${k}: ${assign.dynamicScoresObj[k].score}`); }
-                }
-
-                const titleText = assign.title || assign.prompt || 'Bài Tập Chưa Đặt Tên';
-                const dateText = assign.date ? `<div style="font-size:0.85em; color:#94a3b8; margin-top:4px;">🕒 Ngày tạo: ${assign.date.replace('T', ' ')}</div>` : '';
-                const badge = statusMap[assign.status] || statusMap['graded'];
-                
-                item.innerHTML = `
-                    <div style="display:flex; justify-content:space-between; align-items:flex-start;">
-                        <div><strong style="color: var(--primary-color); font-size:1.1em;">${titleText}</strong> ${badge} ${dateText}</div>
-                        <span style="font-weight:bold; color:var(--danger-color); font-size:1.15em;">Tổng: ${assign.totalScore || 'N/A'}</span>
-                    </div>
-                    <small style="color:#64748b; margin-top:8px; display:block;">${skillsText.join(' &nbsp;|&nbsp; ') || 'Chưa có điểm'}</small>
-                `;
-                container.appendChild(item);
-            });
         }
 
+        function renderTeacherList() {
+            const tbody = document.getElementById('teacher-list-body');
+            tbody.innerHTML = '';
+            dataState.teachers.forEach((t, index) => {
+                const tr = document.createElement('tr');
+                tr.onclick = () => selectTeacher(index);
+                tr.innerHTML = `<td>${t.username}</td><td>${t.name}</td><td>${t.password}</td>
+                <td><span style="color:var(--danger-color);font-weight:bold;cursor:pointer;font-size:1.2em;" onclick="event.stopPropagation(); deleteTeacher(${index});">✕</span></td>`;
+                tbody.appendChild(tr);
+            });
+        }
+        function saveTeacher() {
+            const idx = document.getElementById('teacher-idx').value;
+            const tData = {
+                id: document.getElementById('tc-username').value,
+                username: document.getElementById('tc-username').value,
+                name: document.getElementById('tc-name').value,
+                password: document.getElementById('tc-password').value
+            };
+            if(idx === "") dataState.teachers.push(tData);
+            else dataState.teachers[idx] = tData;
+            saveLocalState(); renderTeacherList(); resetTeacherForm();
+            updateTeacherDropdown();
+        }
+        function selectTeacher(index) {
+            document.getElementById('teacher-idx').value = index;
+            const t = dataState.teachers[index];
+            document.getElementById('tc-username').value = t.username;
+            document.getElementById('tc-name').value = t.name;
+            document.getElementById('tc-password').value = t.password;
+        }
+        function deleteTeacher(index) {
+            if(confirm("Xóa giảng viên này? Các học viên của GV này sẽ không có người phụ trách.")) {
+                dataState.teachers.splice(index, 1);
+                saveLocalState(); renderTeacherList(); resetTeacherForm();
+                updateTeacherDropdown();
+            }
+        }
+        function resetTeacherForm() {
+            document.getElementById('teacher-idx').value = "";
+            document.getElementById('tc-username').value = "";
+            document.getElementById('tc-name').value = "";
+            document.getElementById('tc-password').value = "123456";
+        }
+
+
+        // --- DYNAMIC TABS DISPLAY ---
         function renderSkillCheckboxes(checkedSkills = ['writing', 'speaking']) {
             const container = document.getElementById('skill-checkboxes');
+            if(!container) return;
             let html = `
                 <label class="skill-badge"><input type="checkbox" id="chk-writing" value="writing" onchange="updateTabsDisplay()" ${checkedSkills.includes('writing') ? 'checked' : ''}> Writing</label>
                 <label class="skill-badge"><input type="checkbox" id="chk-speaking" value="speaking" onchange="updateTabsDisplay()" ${checkedSkills.includes('speaking') ? 'checked' : ''}> Speaking</label>
@@ -1278,7 +1185,7 @@
             const hasSpeaking = document.getElementById('chk-speaking') ? document.getElementById('chk-speaking').checked : false;
             
             document.getElementById('tab-btn-writing').style.display = hasWriting ? 'inline-block' : 'none';
-            document.getElementById('tab-btn-rubric').style.display = hasWriting ? 'inline-block' : 'none'; // Student can see Rubric now
+            document.getElementById('tab-btn-rubric').style.display = hasWriting ? 'inline-block' : 'none'; 
             
             if(currentUser.role === 'teacher' || currentUser.role === 'admin') {
                 document.getElementById('tab-btn-speaking').style.display = hasSpeaking ? 'inline-block' : 'none';
@@ -1324,7 +1231,7 @@
                         const summaryTab = document.getElementById('summary-tab'); summaryTab.parentNode.insertBefore(tab, summaryTab);
                     }
                     if(currentUser.role === 'teacher' || currentUser.role === 'admin') btn.style.display = 'inline-block';
-                    else btn.style.display = 'none'; // Hide custom tabs for students
+                    else btn.style.display = 'none'; 
                     
                     const oldVal = document.getElementById(`score-${safeId}`) ? document.getElementById(`score-${safeId}`).value : '';
                     summaryContainer.innerHTML += `
@@ -1339,27 +1246,74 @@
             calculateTotalScore();
             let activeBtn = document.querySelector('.tab-btn.active');
             if (activeBtn && activeBtn.style.display === 'none') switchTab('summary-tab', document.getElementById('tab-btn-summary'));
+        }
 
-            if(currentUser.role === 'student') {
-                document.getElementById('assign-overall-comment').readOnly = true;
-                document.getElementById('prompt-input-container').style.display = 'none';
-                document.getElementById('student-prompt-display').style.display = 'block';
-                document.getElementById('student-prompt-text').innerText = document.getElementById('assign-prompt').value || 'Không có đề bài cụ thể';
-                
-                const sampleGen = document.getElementById('ai-sample-generator-container'); if (sampleGen) sampleGen.style.display = 'none';
-                const fbBar = document.getElementById('feedback-bar-container'); if (fbBar) fbBar.style.display = 'none';
-                document.getElementById('assignment-meta-box-container').style.display = 'none';
-                document.getElementById('teacher-feedback-guide').style.display = 'none';
-            } else {
-                document.getElementById('assign-overall-comment').readOnly = false;
-                document.getElementById('prompt-input-container').style.display = 'block';
-                document.getElementById('student-prompt-display').style.display = 'none';
-                
-                const sampleGen = document.getElementById('ai-sample-generator-container'); if (sampleGen) sampleGen.style.display = 'block';
-                const fbBar = document.getElementById('feedback-bar-container'); if (fbBar) fbBar.style.display = 'flex';
-                document.getElementById('assignment-meta-box-container').style.display = 'block';
-                document.getElementById('teacher-feedback-guide').style.display = 'block';
-            }
+        // START/LOAD ASSIGNMENTS
+        function createNewAssignment() {
+            activeAssignmentIndex = null;
+            document.getElementById('assignment-workspace').style.display = 'block';
+            
+            document.getElementById('assign-title').value = ""; document.getElementById('assign-desc').value = ""; document.getElementById('assign-prompt').value = "";
+            document.getElementById('assign-writing-content').innerHTML = ""; document.getElementById('assign-speaking-text').value = "";
+            document.getElementById('assign-speaking-feedback').value = ""; document.getElementById('assign-overall-comment').value = "";
+            document.getElementById('total-score-val').innerText = "0.0"; document.getElementById('sum-score-val').innerText = "(Tổng cộng: 0.0)";
+            document.getElementById('summary-rubric-scores').innerHTML = '<i>Chưa có thông tin</i>';
+            document.getElementById('assign-sample-essay').value = "";
+            if(document.getElementById('target-band')) document.getElementById('target-band').value = "";
+            
+            const now = new Date(); now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
+            document.getElementById('assign-date').value = now.toISOString().slice(0,16);
+
+            renderSkillCheckboxes(['writing', 'speaking']);
+            document.querySelectorAll('.custom-tab-content').forEach(tab => { tab.querySelector('.custom-skill-title').value = ""; tab.querySelector('.custom-skill-fb').value = ""; });
+            
+            updateTabsDisplay();
+            selectedRubricScores = {}; loadSelectedTemplate();
+            switchTab('writing-tab', document.getElementById('tab-btn-writing'));
+            configureWorkspaceState('');
+        }
+
+        function loadAssignment(index) {
+            activeAssignmentIndex = index;
+            const assign = dataState.students[activeStudentIndex].assignments[index];
+            
+            document.getElementById('assignment-workspace').style.display = 'block';
+            
+            document.getElementById('assign-title').value = assign.title || "";
+            document.getElementById('assign-desc').value = assign.desc || ""; document.getElementById('assign-date').value = assign.date || assign.deadline || "";
+            document.getElementById('assign-prompt').value = assign.prompt || ""; document.getElementById('assign-writing-content').innerHTML = assign.writingContent || "";
+            document.getElementById('assign-speaking-text').value = assign.speakingText || ""; document.getElementById('assign-speaking-feedback').value = assign.speakingFeedback || "";
+            document.getElementById('assign-overall-comment').value = assign.overallComment || ""; document.getElementById('assign-sample-essay').value = assign.sampleEssay || "";
+            
+            let checkedSkills = [];
+            if(assign.hasWriting !== false) checkedSkills.push('writing');
+            if(assign.hasSpeaking !== false) checkedSkills.push('speaking');
+            
+            const customSkillsObj = assign.dynamicScoresObj || {};
+            Object.keys(customSkillsObj).forEach(k => { if (!dataState.availableCustomSkills.includes(k)) dataState.availableCustomSkills.push(k); checkedSkills.push(k); });
+            
+            renderSkillCheckboxes(checkedSkills); updateTabsDisplay();
+
+            if(assign.hasWriting !== false && document.getElementById('score-writing')) document.getElementById('score-writing').value = assign.scoreWriting || "";
+            if(assign.hasSpeaking !== false && document.getElementById('score-speaking')) document.getElementById('score-speaking').value = assign.scoreSpeaking || "";
+
+            document.querySelectorAll('.chk-custom-skill:checked').forEach(cb => {
+                const skill = cb.value; const safeId = encodeURIComponent(skill).replace(/%/g, ''); const tabId = `custom-tab-${safeId}`; const tab = document.getElementById(tabId);
+                if (tab && customSkillsObj[skill]) { tab.querySelector('.custom-skill-title').value = customSkillsObj[skill].title || ""; tab.querySelector('.custom-skill-fb').value = customSkillsObj[skill].feedback || ""; }
+                const scoreInput = document.getElementById(`score-${safeId}`); if(scoreInput && customSkillsObj[skill]) { scoreInput.value = customSkillsObj[skill].score || ""; }
+            });
+            
+            selectedRubricScores = assign.rubricScores || {};
+            if (assign.rubricTemplateId) { const sel = document.getElementById('rubric-template-select'); if(sel) sel.value = assign.rubricTemplateId; }
+            loadSelectedTemplate();
+            
+            if (document.getElementById('target-band')) document.getElementById('target-band').value = assign.targetBand || "";
+            
+            if(assign.hasWriting !== false) switchTab('writing-tab', document.getElementById('tab-btn-writing'));
+            else switchTab('summary-tab', document.getElementById('tab-btn-summary'));
+            
+            calculateTotalScore();
+            configureWorkspaceState(assign.status || 'graded');
         }
 
         function configureWorkspaceState(status) {
@@ -1376,7 +1330,8 @@
 
             if(isTeacher || isAdmin) {
                 editor.setAttribute("contenteditable", isTeacher ? "true" : "false"); 
-                document.getElementById('btn-delete-assign').style.display = (activeAssignmentIndex !== null && isTeacher) ? 'inline-block' : 'none';
+                const delBtn = document.getElementById('btn-delete-assign');
+                if(delBtn) delBtn.style.display = (activeAssignmentIndex !== null && isTeacher) ? 'inline-block' : 'none';
                 aiBtn.style.display = isTeacher ? 'inline-block' : 'none';
             } else if (isStudent) {
                 if (status === 'assigned' || status === 'draft' || status === 'rejected' || status === '' || status === 'ai_graded' || status === undefined) {
@@ -1397,89 +1352,28 @@
                 document.getElementById('display-assign-title').innerText = document.getElementById('assign-title').value || "Bài Tập Mới";
                 document.getElementById('display-assign-desc').innerText = document.getElementById('assign-desc').value;
                 document.getElementById('display-assign-date').innerText = `🕒 Deadline: ${document.getElementById('assign-date').value.replace('T', ' ')}`;
+                
+                document.getElementById('assign-overall-comment').readOnly = true;
+                document.getElementById('prompt-input-container').style.display = 'none';
+                document.getElementById('student-prompt-display').style.display = 'block';
+                document.getElementById('student-prompt-text').innerText = document.getElementById('assign-prompt').value || 'Không có đề bài cụ thể';
+                
+                const sampleGen = document.getElementById('ai-sample-generator-container'); if (sampleGen) sampleGen.style.display = 'none';
+                const fbBar = document.getElementById('feedback-bar-container'); if (fbBar) fbBar.style.display = 'none';
+                document.getElementById('assignment-meta-box-container').style.display = 'none';
+                const guide = document.getElementById('teacher-feedback-guide'); if (guide) guide.style.display = 'none';
             } else {
                 document.getElementById('student-assignment-info').style.display = 'none';
+                
+                document.getElementById('assign-overall-comment').readOnly = false;
+                document.getElementById('prompt-input-container').style.display = 'block';
+                document.getElementById('student-prompt-display').style.display = 'none';
+                
+                const sampleGen = document.getElementById('ai-sample-generator-container'); if (sampleGen) sampleGen.style.display = 'block';
+                const fbBar = document.getElementById('feedback-bar-container'); if (fbBar) fbBar.style.display = 'flex';
+                document.getElementById('assignment-meta-box-container').style.display = 'block';
+                const guide = document.getElementById('teacher-feedback-guide'); if (guide) guide.style.display = 'block';
             }
-        }
-
-        function createNewAssignment() {
-            activeAssignmentIndex = null;
-            document.getElementById('assignment-workspace').style.display = 'block';
-            
-            document.getElementById('assign-title').value = ""; document.getElementById('assign-desc').value = ""; document.getElementById('assign-prompt').value = "";
-            document.getElementById('assign-writing-content').innerHTML = ""; document.getElementById('assign-speaking-text').value = "";
-            document.getElementById('assign-speaking-feedback').value = ""; document.getElementById('assign-overall-comment').value = "";
-            document.getElementById('total-score-val').innerText = "0.0"; document.getElementById('sum-score-val').innerText = "(Tổng cộng: 0.0)";
-            document.getElementById('summary-rubric-scores').innerHTML = '<i>Chưa có thông tin (hãy chọn bên tab Tiêu Chí)</i>';
-            document.getElementById('assign-sample-essay').value = "";
-            if(document.getElementById('target-band')) document.getElementById('target-band').value = "";
-            
-            const now = new Date(); now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
-            document.getElementById('assign-date').value = now.toISOString().slice(0,16);
-            if(document.getElementById('btn-delete-assign')) document.getElementById('btn-delete-assign').style.display = 'none';
-
-            renderSkillCheckboxes(['writing', 'speaking']);
-            document.querySelectorAll('.custom-tab-content').forEach(tab => { tab.querySelector('.custom-skill-title').value = ""; tab.querySelector('.custom-skill-fb').value = ""; });
-            
-            updateTabsDisplay();
-            selectedRubricScores = {}; loadSelectedTemplate();
-            switchTab('writing-tab', document.getElementById('tab-btn-writing'));
-            configureWorkspaceState('');
-        }
-
-        function loadAssignment(index) {
-            activeAssignmentIndex = index;
-            const assign = dataState.students[activeStudentIndex].assignments[index];
-            
-            document.getElementById('assignment-workspace').style.display = 'block';
-            
-            document.getElementById('assign-title').value = assign.title || assign.prompt || "";
-            document.getElementById('assign-desc').value = assign.desc || ""; document.getElementById('assign-date').value = assign.date || assign.deadline || "";
-            document.getElementById('assign-prompt').value = assign.prompt || ""; document.getElementById('assign-writing-content').innerHTML = assign.writingContent || "";
-            document.getElementById('assign-speaking-text').value = assign.speakingText || ""; document.getElementById('assign-speaking-feedback').value = assign.speakingFeedback || "";
-            document.getElementById('assign-overall-comment').value = assign.overallComment || ""; document.getElementById('assign-sample-essay').value = assign.sampleEssay || "";
-            
-            if(document.getElementById('btn-delete-assign')) document.getElementById('btn-delete-assign').style.display = 'inline-block';
-
-            let checkedSkills = [];
-            if(assign.hasWriting !== false) checkedSkills.push('writing');
-            if(assign.hasSpeaking !== false) checkedSkills.push('speaking');
-            
-            const customSkillsObj = assign.dynamicScoresObj || {};
-            if (assign.dynamicScores && Array.isArray(assign.dynamicScores)) {
-                assign.dynamicScores.forEach(ds => { if (ds.title) customSkillsObj[ds.title] = { title: ds.title, feedback: "", score: ds.score }; });
-            }
-
-            Object.keys(customSkillsObj).forEach(k => { if (!dataState.availableCustomSkills.includes(k)) dataState.availableCustomSkills.push(k); checkedSkills.push(k); });
-            renderSkillCheckboxes(checkedSkills);
-
-            updateTabsDisplay();
-
-            // Setup Scores
-            if(assign.hasWriting !== false && document.getElementById('score-writing')) document.getElementById('score-writing').value = assign.scoreWriting || "";
-            if(assign.hasSpeaking !== false && document.getElementById('score-speaking')) document.getElementById('score-speaking').value = assign.scoreSpeaking || "";
-
-            document.querySelectorAll('.chk-custom-skill:checked').forEach(cb => {
-                const skill = cb.value; const safeId = encodeURIComponent(skill).replace(/%/g, ''); const tabId = `custom-tab-${safeId}`; const tab = document.getElementById(tabId);
-                if (tab && customSkillsObj[skill]) { tab.querySelector('.custom-skill-title').value = customSkillsObj[skill].title || ""; tab.querySelector('.custom-skill-fb').value = customSkillsObj[skill].feedback || ""; }
-                const scoreInput = document.getElementById(`score-${safeId}`); if(scoreInput && customSkillsObj[skill]) { scoreInput.value = customSkillsObj[skill].score || ""; }
-            });
-            
-            selectedRubricScores = assign.rubricScores || {};
-            
-            if (assign.rubricTemplateId) {
-                const sel = document.getElementById('rubric-template-select');
-                if(sel) sel.value = assign.rubricTemplateId;
-            }
-            loadSelectedTemplate();
-            
-            if (document.getElementById('target-band')) document.getElementById('target-band').value = assign.targetBand || "";
-            
-            if(assign.hasWriting !== false) switchTab('writing-tab', document.getElementById('tab-btn-writing'));
-            else switchTab('summary-tab', document.getElementById('tab-btn-summary'));
-            
-            calculateTotalScore();
-            configureWorkspaceState(assign.status || 'graded');
         }
 
         function saveAssignmentStatus(statusStr) {
@@ -1516,22 +1410,18 @@
             if (activeAssignmentIndex === null) { student.assignments.push(assignmentData); activeAssignmentIndex = student.assignments.length - 1; } 
             else { student.assignments[activeAssignmentIndex] = assignmentData; }
 
-            saveLocalState(); renderAssignmentList(); configureWorkspaceState(statusStr);
-            alert("Thao tác thành công!");
+            saveLocalState(); renderAssignmentList(); renderGradingList(); configureWorkspaceState(statusStr);
+            alert("Đã lưu thao tác!");
+            if(statusStr === 'pending' && currentUser.role === 'student') {
+                closeWorkspace(); // Student auto close workspace after submit
+            }
         }
 
+        // Tự động gọi cho nút Save Tắt trên tab con
         function saveActiveAssignment() {
             let status = 'graded';
             if(activeAssignmentIndex !== null) { status = dataState.students[activeStudentIndex].assignments[activeAssignmentIndex].status || 'graded'; }
             saveAssignmentStatus(status);
-        }
-
-        function deleteAssignment() {
-            if (activeStudentIndex === null || activeAssignmentIndex === null) return;
-            if (confirm("⚠️ Xóa bài tập này?")) {
-                dataState.students[activeStudentIndex].assignments.splice(activeAssignmentIndex, 1);
-                saveLocalState(); renderAssignmentList(); document.getElementById('assignment-workspace').style.display = 'none'; activeAssignmentIndex = null;
-            }
         }
 
         function renderSummarySample() {
@@ -1545,13 +1435,6 @@
             if (hasWriting && sampleText && sampleText.trim() !== '') {
                 container.style.display = 'block'; content.innerHTML = `<strong>Mục tiêu: Band ${targetBand || 'Gợi ý'}</strong><br><br>${sampleText}`;
             } else { container.style.display = 'none'; content.innerHTML = ''; }
-        }
-
-        function switchTab(tabId, el) {
-            document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
-            document.querySelectorAll('.tab-btn').forEach(t => t.classList.remove('active'));
-            document.getElementById(tabId).classList.add('active'); el.classList.add('active');
-            if (tabId === 'summary-tab') { calculateTotalScore(); renderSummaryRubric(); renderSummarySample(); }
         }
 
         function renderSummaryRubric() {
@@ -1825,7 +1708,7 @@
                             const aiResult = JSON.parse(resData.choices[0].message.content);
                             if (aiResult.html_content) document.getElementById('assign-writing-content').innerHTML = aiResult.html_content;
                             
-                            if (aiResult.scores && template) {
+                            if (aiResult.scores && template && currentUser.role !== 'student') {
                                 let sum = 0, count = 0;
                                 for (let crit in aiResult.scores) {
                                     if (template.criteria.includes(crit)) {
@@ -1843,7 +1726,7 @@
                                 loadSelectedTemplate(); 
                             }
 
-                            if (aiResult.overall_comment) {
+                            if (aiResult.overall_comment && currentUser.role !== 'student') {
                                 let currentCmt = document.getElementById('assign-overall-comment').value;
                                 document.getElementById('assign-overall-comment').value = currentCmt ? currentCmt + "\n\n[Writing AI] " + aiResult.overall_comment : "[Writing AI] " + aiResult.overall_comment;
                             }

@@ -150,7 +150,7 @@
         .student-table th { background-color: #f1f5f9; font-weight: 600; color: #475569; }
         .student-table tr:last-child td { border-bottom: none; }
         .student-table tr:hover { background-color: #f8fafc; cursor: pointer; }
-        .selected-row { background-color: #eff6ff !important; border-left: 4px solid var(--accent-color); }
+        .selected-student { background-color: #eff6ff !important; border-left: 4px solid var(--accent-color); }
 
         .assignment-meta-box { background: #f8fafc; border: 1px solid var(--border-color); border-radius: 10px; padding: 20px; margin-bottom: 25px; }
 
@@ -351,7 +351,7 @@
                                 <div class="form-group"><label>Level Cấp Độ</label><input type="text" id="std-level" class="form-control" required placeholder="Ví dụ: Intermediate"></div>
                             </div>
                             <div style="margin-top: 10px;">
-                                <button type="submit" class="btn btn-success" id="btn-save-student">Lưu Thông Tin (Mật khẩu mặc định: 123456)</button>
+                                <button type="submit" class="btn btn-success" id="btn-save-student">Lưu Thông Tin</button>
                                 <button type="button" class="btn btn-secondary" onclick="resetStudentForm()">Tạo Mới Form</button>
                             </div>
                         </form>
@@ -414,15 +414,15 @@
                             <button class="btn btn-secondary" onclick="renderGradingList()">🔄 Làm Mới</button>
                         </div>
                         <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px;">
-                            <select id="grad-f-school" class="form-control" onchange="renderGradingList(true, 'school')"></select>
-                            <select id="grad-f-dept" class="form-control" onchange="renderGradingList(true, 'dept')"></select>
-                            <select id="grad-f-cohort" class="form-control" onchange="renderGradingList(true, 'cohort')"></select>
-                            <select id="grad-f-class" class="form-control" onchange="renderGradingList(true, 'class')"></select>
+                            <select id="grad-f-school" class="form-control" onchange="populateGradingFilters('school')"></select>
+                            <select id="grad-f-dept" class="form-control" onchange="populateGradingFilters('dept')"></select>
+                            <select id="grad-f-cohort" class="form-control" onchange="populateGradingFilters('cohort')"></select>
+                            <select id="grad-f-class" class="form-control" onchange="populateGradingFilters('class')"></select>
                             <select id="grad-f-status" class="form-control" onchange="renderGradingList()">
-                                <option value="pending" selected>📌 Cần Chấm (Đã nộp/AI chấm)</option>
+                                <option value="needs_grading" selected>📌 Cần Chấm (Đã nộp/AI chấm)</option>
                                 <option value="all">Tất cả bài tập</option>
                                 <option value="graded">✅ Đã Chấm Điểm</option>
-                                <option value="draft">⏳ Lưu Nháp / Chưa nộp</option>
+                                <option value="assigned">⏳ Mới Giao / Lưu Nháp</option>
                             </select>
                             <input type="text" id="grad-f-search" class="form-control" placeholder="Tên / Mã số SV..." onkeyup="renderGradingList()">
                         </div>
@@ -431,7 +431,7 @@
                     <div class="card" id="layout-2-list">
                         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
                             <h3 style="margin: 0;" id="list-title-text">Danh Sách Bài Làm</h3>
-                            <button class="btn btn-primary btn-student-only" onclick="createNewAssignment()">+ Viết Bài Mới Khác</button>
+                            <button class="btn btn-primary btn-student-only" onclick="createNewAssignment()">+ Viết Bài Tự Do</button>
                         </div>
                         <table class="student-table">
                             <thead>
@@ -493,6 +493,7 @@
                                     
                                     <div class="form-group">
                                         <label>Bài Làm Của Học Viên</label>
+                                        <div class="btn-teacher-admin-only" id="teacher-feedback-guide" style="font-size: 0.85em; color: #64748b; margin-bottom: 8px;">(Mẹo: Bôi đen một đoạn văn bản và click vào các nút màu bên dưới để ghi chú lỗi)</div>
                                         <div class="feedback-bar btn-teacher-admin-only" id="feedback-bar-container">
                                             <button class="fb-btn fb-grammar" onclick="addFeedback('Grammar', '#ef4444')">Grammar</button>
                                             <button class="fb-btn fb-vocab" onclick="addFeedback('Vocabulary', '#3b82f6')">Vocabulary</button>
@@ -712,10 +713,21 @@
             saveLocalState();
         };
 
-        function saveLocalState() { localStorage.setItem('eng_grading_state', JSON.stringify(dataState)); }
+        function saveLocalState() { 
+            localStorage.setItem('eng_grading_state', JSON.stringify(dataState)); 
+            if(currentUser) localStorage.setItem('eng_current_user', JSON.stringify(currentUser));
+        }
+
         function loadLocalState() {
             const saved = localStorage.getItem('eng_grading_state');
             if (saved) { try { dataState = JSON.parse(saved); } catch(e) {} }
+            const savedUser = localStorage.getItem('eng_current_user');
+            if (savedUser) { 
+                try { 
+                    currentUser = JSON.parse(savedUser); 
+                    setTimeout(() => postLoginSetup(), 50);
+                } catch(e) {} 
+            }
         }
 
         // --- LOGIN LOGIC ---
@@ -733,6 +745,7 @@
 
         function handleLogout() {
             currentUser = null; activeStudentIndex = null; activeAssignmentIndex = null;
+            localStorage.removeItem('eng_current_user');
             document.getElementById('main-app').style.display = 'none';
             document.getElementById('login-view').style.display = 'flex';
             document.getElementById('login-user').value = ""; document.getElementById('login-pass').value = "";
@@ -743,7 +756,8 @@
             const np = document.getElementById('new-password').value;
             if(np.trim().length < 3) { alert("Mật khẩu phải từ 3 ký tự!"); return; }
             if (currentUser.role === 'student') {
-                dataState.students[activeStudentIndex].password = np.trim();
+                const sIdx = dataState.students.findIndex(x => x.id === currentUser.id);
+                if (sIdx > -1) dataState.students[sIdx].password = np.trim();
             } else if (currentUser.role === 'teacher') {
                 let t = dataState.teachers.find(x => x.id === currentUser.id); if(t) t.password = np.trim();
             } else if (currentUser.role === 'admin') {
@@ -758,7 +772,8 @@
             document.getElementById('main-app').style.display = 'flex';
             document.getElementById('user-greeting').innerText = `Xin chào, ${currentUser.name || currentUser.id}`;
             const sideNav = document.getElementById('side-nav');
-            
+            saveLocalState();
+
             if (currentUser.role === 'admin') {
                 document.body.classList.remove('role-student', 'role-teacher');
                 document.body.classList.add('role-admin');
@@ -824,11 +839,9 @@
             if (viewId === 'view-rubrics') refreshModalTemplateSelect();
             else if (viewId === 'view-reports') generateReport();
             else if (viewId === 'view-assign') {
-                updateBatchTargets();
+                populateAssignFilters();
                 const now = new Date(); now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
                 document.getElementById('batch-deadline').value = now.toISOString().slice(0,16);
-                // Cập nhật lại list filters cho tab Assign dựa theo HS của GV
-                populateAssignFilters();
             }
             else if (viewId === 'view-grading') {
                 if (currentUser.role === 'student') {
@@ -840,7 +853,6 @@
                     document.getElementById('workspace-header').style.display = 'none';
                     document.getElementById('assignment-workspace').style.display = 'none';
                     populateGradingFilters();
-                    renderGradingList();
                 }
             }
         }
@@ -854,15 +866,28 @@
 
         function getUniqueValues(arr, key) { return [...new Set(arr.map(item => item[key]).filter(Boolean))]; }
 
-        function populateGradingFilters() {
-            const students = getMyStudents();
-            populateSelect(document.getElementById('grad-f-school'), [''].concat(getUniqueValues(students, 'school'))); document.getElementById('grad-f-school').options[0].text = "Tất cả Trường";
-            populateSelect(document.getElementById('grad-f-dept'), [''].concat(getUniqueValues(students, 'department'))); document.getElementById('grad-f-dept').options[0].text = "Tất cả Khoa";
-            populateSelect(document.getElementById('grad-f-cohort'), [''].concat(getUniqueValues(students, 'cohort'))); document.getElementById('grad-f-cohort').options[0].text = "Tất cả Khóa";
-            populateSelect(document.getElementById('grad-f-class'), [''].concat(getUniqueValues(students, 'className'))); document.getElementById('grad-f-class').options[0].text = "Tất cả Lớp";
+        function populateGradingFilters(levelChanged = 'none') {
+            let students = getMyStudents();
+            const schoolSel = document.getElementById('grad-f-school');
+            const deptSel = document.getElementById('grad-f-dept');
+            const cohortSel = document.getElementById('grad-f-cohort');
+            const classSel = document.getElementById('grad-f-class');
+            
+            if (levelChanged === 'none') { populateSelect(schoolSel, [''].concat(getUniqueValues(students, 'school'))); schoolSel.options[0].text = "Tất cả Trường"; }
+            if(schoolSel.value) students = students.filter(s => s.school === schoolSel.value);
+
+            if (levelChanged === 'none' || levelChanged === 'school') { populateSelect(deptSel, [''].concat(getUniqueValues(students, 'department'))); deptSel.options[0].text = "Tất cả Khoa"; }
+            if(deptSel.value) students = students.filter(s => s.department === deptSel.value);
+
+            if (levelChanged === 'none' || levelChanged === 'school' || levelChanged === 'dept') { populateSelect(cohortSel, [''].concat(getUniqueValues(students, 'cohort'))); cohortSel.options[0].text = "Tất cả Khóa"; }
+            if(cohortSel.value) students = students.filter(s => s.cohort === cohortSel.value);
+
+            if (levelChanged === 'none' || levelChanged === 'school' || levelChanged === 'dept' || levelChanged === 'cohort') { populateSelect(classSel, [''].concat(getUniqueValues(students, 'className'))); classSel.options[0].text = "Tất cả Lớp"; }
+            
+            renderGradingList();
         }
 
-        function renderGradingList(isFilterChange = false, filterLevel = '') {
+        function renderGradingList() {
             const tbody = document.getElementById('grading-all-list'); tbody.innerHTML = '';
             
             let students = [];
@@ -870,85 +895,39 @@
                 students = [dataState.students[activeStudentIndex]];
             } else {
                 students = getMyStudents();
-                
-                // Cascade filters logic for Layout 1
-                const fSchool = document.getElementById('grad-f-school').value;
-                const fDept = document.getElementById('grad-f-dept').value;
-                const fCohort = document.getElementById('grad-f-cohort').value;
-                const fClass = document.getElementById('grad-f-class').value;
-                
-                if (isFilterChange) {
-                    let filtered = students;
-                    if(fSchool) filtered = filtered.filter(s => s.school === fSchool);
-                    if(filterLevel === 'school') {
-                        populateSelect(document.getElementById('grad-f-dept'), [''].concat(getUniqueValues(filtered, 'department'))); document.getElementById('grad-f-dept').options[0].text = "Tất cả Khoa";
-                        populateSelect(document.getElementById('grad-f-cohort'), [''].concat(getUniqueValues(filtered, 'cohort'))); document.getElementById('grad-f-cohort').options[0].text = "Tất cả Khóa";
-                        populateSelect(document.getElementById('grad-f-class'), [''].concat(getUniqueValues(filtered, 'className'))); document.getElementById('grad-f-class').options[0].text = "Tất cả Lớp";
-                    }
-                    if(fDept) filtered = filtered.filter(s => s.department === fDept);
-                    if(filterLevel === 'dept') {
-                        populateSelect(document.getElementById('grad-f-cohort'), [''].concat(getUniqueValues(filtered, 'cohort'))); document.getElementById('grad-f-cohort').options[0].text = "Tất cả Khóa";
-                        populateSelect(document.getElementById('grad-f-class'), [''].concat(getUniqueValues(filtered, 'className'))); document.getElementById('grad-f-class').options[0].text = "Tất cả Lớp";
-                    }
-                    if(fCohort) filtered = filtered.filter(s => s.cohort === fCohort);
-                    if(filterLevel === 'cohort') {
-                        populateSelect(document.getElementById('grad-f-class'), [''].concat(getUniqueValues(filtered, 'className'))); document.getElementById('grad-f-class').options[0].text = "Tất cả Lớp";
-                    }
-                }
-
-                // Apply Hard Filters for display
-                if(document.getElementById('grad-f-school').value) students = students.filter(s => s.school === document.getElementById('grad-f-school').value);
-                if(document.getElementById('grad-f-dept').value) students = students.filter(s => s.department === document.getElementById('grad-f-dept').value);
-                if(document.getElementById('grad-f-cohort').value) students = students.filter(s => s.cohort === document.getElementById('grad-f-cohort').value);
-                if(document.getElementById('grad-f-class').value) students = students.filter(s => s.className === document.getElementById('grad-f-class').value);
-
+                const fSchool = document.getElementById('grad-f-school').value; const fDept = document.getElementById('grad-f-dept').value;
+                const fCohort = document.getElementById('grad-f-cohort').value; const fClass = document.getElementById('grad-f-class').value;
                 const searchText = document.getElementById('grad-f-search').value.toLowerCase();
-                if (searchText) {
-                    students = students.filter(s => s.name.toLowerCase().includes(searchText) || s.id.toLowerCase().includes(searchText));
-                }
+                
+                if(fSchool) students = students.filter(s => s.school === fSchool);
+                if(fDept) students = students.filter(s => s.department === fDept);
+                if(fCohort) students = students.filter(s => s.cohort === fCohort);
+                if(fClass) students = students.filter(s => s.className === fClass);
+                if(searchText) students = students.filter(s => s.name.toLowerCase().includes(searchText) || s.id.toLowerCase().includes(searchText));
             }
 
             let allAssignments = [];
             students.forEach(s => {
                 const sIdx = dataState.students.indexOf(s);
-                if(s.assignments) {
-                    s.assignments.forEach((a, aIdx) => {
-                        allAssignments.push({ student: s, sIdx: sIdx, assign: a, aIdx: aIdx });
-                    });
-                }
+                if(s.assignments) { s.assignments.forEach((a, aIdx) => { allAssignments.push({ student: s, sIdx: sIdx, assign: a, aIdx: aIdx }); }); }
             });
 
-            // Filter by Status
-            let statusFilter = "all";
-            if(currentUser.role !== 'student' && document.getElementById('grad-f-status')) {
-                statusFilter = document.getElementById('grad-f-status').value;
+            if (currentUser.role !== 'student') {
+                const statusFilter = document.getElementById('grad-f-status').value;
+                if (statusFilter === 'needs_grading') allAssignments = allAssignments.filter(x => x.assign.status === 'pending' || x.assign.status === 'ai_graded');
+                else if (statusFilter === 'graded') allAssignments = allAssignments.filter(x => x.assign.status === 'graded' || x.assign.status === 'rejected');
+                else if (statusFilter === 'assigned') allAssignments = allAssignments.filter(x => x.assign.status === 'assigned' || x.assign.status === 'draft' || !x.assign.status);
             }
 
-            if (statusFilter === 'needs_grading') {
-                allAssignments = allAssignments.filter(x => x.assign.status === 'pending' || x.assign.status === 'ai_graded');
-            } else if (statusFilter === 'graded') {
-                allAssignments = allAssignments.filter(x => x.assign.status === 'graded' || x.assign.status === 'rejected');
-            } else if (statusFilter === 'assigned') {
-                allAssignments = allAssignments.filter(x => x.assign.status === 'assigned' || x.assign.status === 'draft' || !x.assign.status);
-            }
-
-            // Sort by Date DESC
-            allAssignments.sort((a,b) => {
-                let d1 = new Date(a.assign.date || 0); let d2 = new Date(b.assign.date || 0); return d2 - d1;
-            });
-
-            if (allAssignments.length === 0) {
-                document.getElementById('empty-list-msg').style.display = 'block';
-            } else {
-                document.getElementById('empty-list-msg').style.display = 'none';
-            }
+            allAssignments.sort((a,b) => new Date(b.assign.date || 0) - new Date(a.assign.date || 0));
+            if (allAssignments.length === 0) document.getElementById('empty-list-msg').style.display = 'block'; else document.getElementById('empty-list-msg').style.display = 'none';
 
             const statusMap = {
                 'assigned': currentUser.role === 'student' ? '<span class="status-badge status-assigned">Cần Làm</span>' : '<span class="status-badge status-assigned">Mới Giao</span>',
                 'draft': '<span class="status-badge status-draft">Lưu Nháp</span>',
-                'pending': '<span class="status-badge status-pending">Chờ Chấm</span>',
+                'pending': currentUser.role === 'student' ? '<span class="status-badge status-pending">Đã Nộp</span>' : '<span class="status-badge status-pending">Đã Nộp (Chờ chấm)</span>',
                 'ai_graded': '<span class="status-badge status-ai_graded">Đã Chấm AI</span>',
-                'graded': '<span class="status-badge status-graded">Đã Chấm</span>',
+                'graded': '<span class="status-badge status-graded">Đã Chấm Xong</span>',
                 'rejected': '<span class="status-badge status-rejected">Từ Chối / Sửa Lại</span>'
             };
 
@@ -958,36 +937,23 @@
                 const titleText = item.assign.title || item.assign.prompt || 'Bài Tập Chưa Đặt Tên';
                 const dateText = item.assign.date ? item.assign.date.replace('T', ' ') : '-';
                 const badge = statusMap[item.assign.status] || statusMap['draft'];
-                
-                let svCol = currentUser.role !== 'student' ? `<td><strong>${item.student.name}</strong><br><small>${item.student.id} | ${item.student.className || ''}</small></td>` : '';
-                
-                tr.innerHTML = `
-                    <td><small>${dateText}</small></td>
-                    ${svCol}
-                    <td style="color:var(--primary-color); font-weight:600;">${titleText}</td>
-                    <td>${badge}</td>
-                    <td><strong>${item.assign.totalScore || '-'}</strong></td>
-                `;
+                let svCol = currentUser.role !== 'student' ? `<td class="btn-teacher-admin-only"><strong>${item.student.name}</strong><br><small>${item.student.id} | ${item.student.className || ''}</small></td>` : '';
+                tr.innerHTML = `<td><small>${dateText}</small></td>${svCol}<td style="color:var(--primary-color); font-weight:600;">${titleText}</td><td>${badge}</td><td><strong>${item.assign.totalScore || '-'}</strong></td>`;
                 tbody.appendChild(tr);
             });
         }
 
         function loadAssignmentForGrading(sIdx, aIdx) {
             activeStudentIndex = sIdx;
-            
-            // Show workspace
-            document.getElementById('workspace-header').style.display = 'none'; // hide old header
+            const wh = document.getElementById('workspace-header'); if(wh) wh.style.display = 'none'; 
             document.getElementById('assignment-workspace').style.display = 'block';
-            
             loadAssignment(aIdx);
             document.getElementById('assignment-workspace').scrollIntoView({behavior: 'smooth'});
         }
 
         function closeWorkspace() {
-            document.getElementById('assignment-workspace').style.display = 'none';
-            activeAssignmentIndex = null;
-            renderGradingList(); // Refresh list to catch any status updates
-            document.getElementById('layout-2-list').scrollIntoView({behavior: 'smooth'});
+            document.getElementById('assignment-workspace').style.display = 'none'; activeAssignmentIndex = null;
+            renderGradingList(); document.getElementById('layout-2-list').scrollIntoView({behavior: 'smooth'});
         }
 
         // --- ASSIGN HOMEWORK CASCADING (TEACHER) ---
@@ -1002,10 +968,7 @@
 
         function renderAssignFilters(filterLevel) {
             let students = getMyStudents();
-            const fSchool = document.getElementById('assign-f-school').value;
-            const fDept = document.getElementById('assign-f-dept').value;
-            const fCohort = document.getElementById('assign-f-cohort').value;
-            
+            const fSchool = document.getElementById('assign-f-school').value; const fDept = document.getElementById('assign-f-dept').value; const fCohort = document.getElementById('assign-f-cohort').value;
             if(fSchool) students = students.filter(s => s.school === fSchool);
             if(filterLevel === 'school') {
                 populateSelect(document.getElementById('assign-f-dept'), [''].concat(getUniqueValues(students, 'department'))); document.getElementById('assign-f-dept').options[0].text = "Tất cả Khoa";
@@ -1029,10 +992,8 @@
             const container = document.getElementById('batch-target-list'); container.innerHTML = '';
             
             let students = getMyStudents();
-            const fSchool = document.getElementById('assign-f-school').value;
-            const fDept = document.getElementById('assign-f-dept').value;
-            const fCohort = document.getElementById('assign-f-cohort').value;
-            const fClass = document.getElementById('assign-f-class').value;
+            const fSchool = document.getElementById('assign-f-school').value; const fDept = document.getElementById('assign-f-dept').value;
+            const fCohort = document.getElementById('assign-f-cohort').value; const fClass = document.getElementById('assign-f-class').value;
 
             if(fSchool) students = students.filter(s => s.school === fSchool);
             if(fDept) students = students.filter(s => s.department === fDept);
@@ -1047,119 +1008,69 @@
             });
             
             const arr = Array.from(options).filter(Boolean);
-            if (arr.length === 0) {
-                container.innerHTML = "<i>Không có dữ liệu phù hợp với bộ lọc hiện tại.</i>";
-                return;
-            }
-            
-            arr.forEach(opt => {
-                container.innerHTML += `<label style="display:block; margin-bottom:8px; cursor:pointer;"><input type="checkbox" value="${opt}" class="batch-target-cb" checked> ${opt}</label>`;
-            });
+            if (arr.length === 0) { container.innerHTML = "<i>Không có dữ liệu phù hợp với bộ lọc hiện tại.</i>"; return; }
+            arr.forEach(opt => { container.innerHTML += `<label style="display:block; margin-bottom:8px; cursor:pointer;"><input type="checkbox" value="${opt}" class="batch-target-cb" checked> ${opt}</label>`; });
         }
 
         function executeAssignHomework() {
-            const title = document.getElementById('batch-title').value.trim();
-            const promptText = document.getElementById('batch-prompt').value.trim();
-            const deadline = document.getElementById('batch-deadline').value;
-            const rubricId = document.getElementById('batch-rubric').value;
+            const title = document.getElementById('batch-title').value.trim(); const promptText = document.getElementById('batch-prompt').value.trim();
+            const deadline = document.getElementById('batch-deadline').value; const rubricId = document.getElementById('batch-rubric').value;
             const type = document.getElementById('batch-target-type').value;
-            
             if(!title) { alert("Vui lòng nhập tiêu đề bài tập!"); return; }
-
             const selectedTargets = Array.from(document.querySelectorAll('.batch-target-cb:checked')).map(cb => cb.value);
             if(selectedTargets.length === 0) { alert("Vui lòng chọn ít nhất 1 đối tượng nhận bài!"); return; }
 
-            let count = 0;
-            let myStudents = getMyStudents();
-
+            let count = 0; let myStudents = getMyStudents();
             myStudents.forEach(s => {
                 let match = false;
                 if (type === 'individual' && selectedTargets.includes(s.id + ' | ' + s.name)) match = true;
                 else if (type === 'class' && selectedTargets.includes(s.className)) match = true;
                 else if (type === 'cohort' && selectedTargets.includes(s.cohort)) match = true;
-
                 if (match) {
                     if(!s.assignments) s.assignments = [];
                     s.assignments.push({
-                        title: title, desc: "", prompt: promptText, deadline: deadline,
-                        date: new Date().toISOString().slice(0,16), status: 'assigned',
-                        hasWriting: true, hasSpeaking: false, rubricTemplateId: rubricId,
-                        writingContent: "", speakingText: "", scoreWriting: 0, scoreSpeaking: 0, totalScore: 0
+                        title: title, desc: "", prompt: promptText, deadline: deadline, date: new Date().toISOString().slice(0,16), status: 'assigned',
+                        hasWriting: true, hasSpeaking: false, rubricTemplateId: rubricId, writingContent: "", speakingText: "", scoreWriting: 0, scoreSpeaking: 0, totalScore: 0
                     });
                     count++;
                 }
             });
-
-            if (count > 0) {
-                saveLocalState(); alert(`Đã giao bài tập thành công cho ${count} học viên!`);
-                document.getElementById('batch-title').value = ""; document.getElementById('batch-prompt').value = "";
-            } else { alert("Không tìm thấy học viên nào phù hợp."); }
+            if (count > 0) { saveLocalState(); alert(`Đã giao bài tập thành công cho ${count} học viên!`); document.getElementById('batch-title').value = ""; document.getElementById('batch-prompt').value = ""; } 
+            else { alert("Không tìm thấy học viên nào phù hợp."); }
         }
 
         // --- ADMIN TEACHER MGMT ---
-        function updateTeacherDropdown() {
-            if (document.getElementById('std-teacher')) {
-                populateSelect(document.getElementById('std-teacher'), dataState.teachers.map(t => t.name));
-            }
-        }
-
+        function updateTeacherDropdown() { if (document.getElementById('std-teacher')) { populateSelect(document.getElementById('std-teacher'), dataState.teachers.map(t => t.name)); } }
         function renderTeacherList() {
-            const tbody = document.getElementById('teacher-list-body');
-            tbody.innerHTML = '';
+            const tbody = document.getElementById('teacher-list-body'); tbody.innerHTML = '';
             dataState.teachers.forEach((t, index) => {
-                const tr = document.createElement('tr');
-                tr.onclick = () => selectTeacher(index);
-                tr.innerHTML = `<td>${t.username}</td><td>${t.name}</td><td>${t.password}</td>
-                <td><span style="color:var(--danger-color);font-weight:bold;cursor:pointer;font-size:1.2em;" onclick="event.stopPropagation(); deleteTeacher(${index});">✕</span></td>`;
+                const tr = document.createElement('tr'); tr.onclick = () => selectTeacher(index);
+                tr.innerHTML = `<td>${t.username}</td><td>${t.name}</td><td>${t.password}</td><td><span style="color:var(--danger-color);font-weight:bold;cursor:pointer;font-size:1.2em;" onclick="event.stopPropagation(); deleteTeacher(${index});">✕</span></td>`;
                 tbody.appendChild(tr);
             });
         }
         function saveTeacher() {
             const idx = document.getElementById('teacher-idx').value;
-            const tData = {
-                id: document.getElementById('tc-username').value,
-                username: document.getElementById('tc-username').value,
-                name: document.getElementById('tc-name').value,
-                password: document.getElementById('tc-password').value
-            };
-            if(idx === "") dataState.teachers.push(tData);
-            else dataState.teachers[idx] = tData;
-            saveLocalState(); renderTeacherList(); resetTeacherForm();
-            updateTeacherDropdown();
+            const tData = { id: document.getElementById('tc-username').value, username: document.getElementById('tc-username').value, name: document.getElementById('tc-name').value, password: document.getElementById('tc-password').value };
+            if(idx === "") dataState.teachers.push(tData); else dataState.teachers[idx] = tData;
+            saveLocalState(); renderTeacherList(); resetTeacherForm(); updateTeacherDropdown();
         }
         function selectTeacher(index) {
-            document.getElementById('teacher-idx').value = index;
-            const t = dataState.teachers[index];
-            document.getElementById('tc-username').value = t.username;
-            document.getElementById('tc-name').value = t.name;
-            document.getElementById('tc-password').value = t.password;
+            document.getElementById('teacher-idx').value = index; const t = dataState.teachers[index];
+            document.getElementById('tc-username').value = t.username; document.getElementById('tc-name').value = t.name; document.getElementById('tc-password').value = t.password;
         }
         function deleteTeacher(index) {
             if(confirm("Xóa giảng viên này? Các học viên của GV này sẽ không có người phụ trách.")) {
-                dataState.teachers.splice(index, 1);
-                saveLocalState(); renderTeacherList(); resetTeacherForm();
-                updateTeacherDropdown();
+                dataState.teachers.splice(index, 1); saveLocalState(); renderTeacherList(); resetTeacherForm(); updateTeacherDropdown();
             }
         }
-        function resetTeacherForm() {
-            document.getElementById('teacher-idx').value = "";
-            document.getElementById('tc-username').value = "";
-            document.getElementById('tc-name').value = "";
-            document.getElementById('tc-password').value = "123456";
-        }
-
+        function resetTeacherForm() { document.getElementById('teacher-idx').value = ""; document.getElementById('tc-username').value = ""; document.getElementById('tc-name').value = ""; document.getElementById('tc-password').value = "123456"; }
 
         // --- DYNAMIC TABS DISPLAY ---
         function renderSkillCheckboxes(checkedSkills = ['writing', 'speaking']) {
-            const container = document.getElementById('skill-checkboxes');
-            if(!container) return;
-            let html = `
-                <label class="skill-badge"><input type="checkbox" id="chk-writing" value="writing" onchange="updateTabsDisplay()" ${checkedSkills.includes('writing') ? 'checked' : ''}> Writing</label>
-                <label class="skill-badge"><input type="checkbox" id="chk-speaking" value="speaking" onchange="updateTabsDisplay()" ${checkedSkills.includes('speaking') ? 'checked' : ''}> Speaking</label>
-            `;
-            dataState.availableCustomSkills.forEach(skill => {
-                html += `<label class="skill-badge"><input type="checkbox" class="chk-custom-skill" value="${skill}" onchange="updateTabsDisplay()" ${checkedSkills.includes(skill) ? 'checked' : ''}> ${skill}</label>`;
-            });
+            const container = document.getElementById('skill-checkboxes'); if(!container) return;
+            let html = `<label class="skill-badge"><input type="checkbox" id="chk-writing" value="writing" onchange="updateTabsDisplay()" ${checkedSkills.includes('writing') ? 'checked' : ''}> Writing</label><label class="skill-badge"><input type="checkbox" id="chk-speaking" value="speaking" onchange="updateTabsDisplay()" ${checkedSkills.includes('speaking') ? 'checked' : ''}> Speaking</label>`;
+            dataState.availableCustomSkills.forEach(skill => { html += `<label class="skill-badge"><input type="checkbox" class="chk-custom-skill" value="${skill}" onchange="updateTabsDisplay()" ${checkedSkills.includes(skill) ? 'checked' : ''}> ${skill}</label>`; });
             container.innerHTML = html;
         }
 
@@ -1167,15 +1078,12 @@
             const skill = prompt("Nhập tên kỹ năng cần đánh giá (Ví dụ: Reading, Listening):");
             if (skill && skill.trim() !== "") {
                 const cleanSkill = skill.trim();
-                if (!dataState.availableCustomSkills.includes(cleanSkill)) {
-                    dataState.availableCustomSkills.push(cleanSkill); saveLocalState();
-                }
+                if (!dataState.availableCustomSkills.includes(cleanSkill)) { dataState.availableCustomSkills.push(cleanSkill); saveLocalState(); }
                 let currentlyChecked = [];
                 if(document.getElementById('chk-writing') && document.getElementById('chk-writing').checked) currentlyChecked.push('writing');
                 if(document.getElementById('chk-speaking') && document.getElementById('chk-speaking').checked) currentlyChecked.push('speaking');
                 document.querySelectorAll('.chk-custom-skill:checked').forEach(cb => currentlyChecked.push(cb.value));
                 if (!currentlyChecked.includes(cleanSkill)) currentlyChecked.push(cleanSkill);
-
                 renderSkillCheckboxes(currentlyChecked); updateTabsDisplay();
             }
         }
@@ -1187,27 +1095,19 @@
             document.getElementById('tab-btn-writing').style.display = hasWriting ? 'inline-block' : 'none';
             document.getElementById('tab-btn-rubric').style.display = hasWriting ? 'inline-block' : 'none'; 
             
-            if(currentUser.role === 'teacher' || currentUser.role === 'admin') {
-                document.getElementById('tab-btn-speaking').style.display = hasSpeaking ? 'inline-block' : 'none';
-            } else {
-                document.getElementById('tab-btn-speaking').style.display = 'none';
-            }
+            if(currentUser.role === 'teacher' || currentUser.role === 'admin') document.getElementById('tab-btn-speaking').style.display = hasSpeaking ? 'inline-block' : 'none';
+            else document.getElementById('tab-btn-speaking').style.display = 'none';
             
-            const summaryContainer = document.getElementById('summary-skills-container');
-            summaryContainer.innerHTML = ''; 
+            const summaryContainer = document.getElementById('summary-skills-container'); summaryContainer.innerHTML = ''; 
             const readOnlyStr = currentUser.role === 'student' ? 'readonly style="background:#f1f5f9; cursor:not-allowed;"' : '';
 
             if(hasWriting) {
                 const oldVal = document.getElementById('score-writing') ? document.getElementById('score-writing').value : '';
-                summaryContainer.innerHTML += `
-                    <div><label style="font-weight:600; color:#475569; display:block; margin-bottom:5px;">Điểm Writing</label>
-                    <input type="number" step="0.1" id="score-writing" class="form-control score-input" placeholder="0.0" value="${oldVal}" onchange="calculateTotalScore()" onkeyup="calculateTotalScore()" ${readOnlyStr}></div>`;
+                summaryContainer.innerHTML += `<div><label style="font-weight:600; color:#475569; display:block; margin-bottom:5px;">Điểm Writing</label><input type="number" step="0.1" id="score-writing" class="form-control score-input" placeholder="0.0" value="${oldVal}" onchange="calculateTotalScore()" onkeyup="calculateTotalScore()" ${readOnlyStr}></div>`;
             }
             if(hasSpeaking && (currentUser.role === 'teacher' || currentUser.role === 'admin')) {
                 const oldVal = document.getElementById('score-speaking') ? document.getElementById('score-speaking').value : '';
-                summaryContainer.innerHTML += `
-                    <div><label style="font-weight:600; color:#475569; display:block; margin-bottom:5px;">Điểm Speaking</label>
-                    <input type="number" step="0.1" id="score-speaking" class="form-control score-input" placeholder="0.0" value="${oldVal}" onchange="calculateTotalScore()" onkeyup="calculateTotalScore()" ${readOnlyStr}></div>`;
+                summaryContainer.innerHTML += `<div><label style="font-weight:600; color:#475569; display:block; margin-bottom:5px;">Điểm Speaking</label><input type="number" step="0.1" id="score-speaking" class="form-control score-input" placeholder="0.0" value="${oldVal}" onchange="calculateTotalScore()" onkeyup="calculateTotalScore()" ${readOnlyStr}></div>`;
             }
 
             const customCheckboxes = document.querySelectorAll('.chk-custom-skill');
@@ -1217,26 +1117,19 @@
                 
                 if (cb.checked) {
                     if (!btn) {
-                        btn = document.createElement('button');
-                        btn.className = `tab-btn custom-tab-btn ${currentUser.role === 'student' ? 'btn-teacher-only' : ''}`;
-                        btn.id = btnId; btn.innerText = `🎯 ${skill}`;
-                        btn.onclick = function() { switchTab(tabId, this); };
+                        btn = document.createElement('button'); btn.className = `tab-btn custom-tab-btn ${currentUser.role === 'student' ? 'btn-teacher-only' : ''}`;
+                        btn.id = btnId; btn.innerText = `🎯 ${skill}`; btn.onclick = function() { switchTab(tabId, this); };
                         const summaryBtn = document.getElementById('tab-btn-summary'); summaryBtn.parentNode.insertBefore(btn, summaryBtn);
                         
                         tab = document.createElement('div'); tab.className = 'tab-content custom-tab-content'; tab.id = tabId; tab.setAttribute('data-skill', skill);
-                        tab.innerHTML = `
-                            <div class="form-group"><label>Tiêu đề / Đề bài phần ${skill}</label><input type="text" class="form-control custom-skill-title" placeholder="Nhập tiêu đề hoặc mã đề..."></div>
-                            <div class="form-group"><label>Nhận xét chi tiết</label><textarea class="form-control custom-skill-fb" rows="6" placeholder="Nhập nhận xét đánh giá kỹ năng này..."></textarea></div>
-                        `;
+                        tab.innerHTML = `<div class="form-group"><label>Tiêu đề / Đề bài phần ${skill}</label><input type="text" class="form-control custom-skill-title" placeholder="Nhập tiêu đề hoặc mã đề..."></div><div class="form-group"><label>Nhận xét chi tiết</label><textarea class="form-control custom-skill-fb" rows="6" placeholder="Nhập nhận xét đánh giá kỹ năng này..."></textarea></div>`;
                         const summaryTab = document.getElementById('summary-tab'); summaryTab.parentNode.insertBefore(tab, summaryTab);
                     }
                     if(currentUser.role === 'teacher' || currentUser.role === 'admin') btn.style.display = 'inline-block';
                     else btn.style.display = 'none'; 
                     
                     const oldVal = document.getElementById(`score-${safeId}`) ? document.getElementById(`score-${safeId}`).value : '';
-                    summaryContainer.innerHTML += `
-                        <div><label style="font-weight:600; color:#475569; display:block; margin-bottom:5px;">Điểm ${skill}</label>
-                        <input type="number" step="0.1" id="score-${safeId}" class="form-control score-input" data-custom-skill="${skill}" placeholder="0.0" value="${oldVal}" onchange="calculateTotalScore()" onkeyup="calculateTotalScore()" ${readOnlyStr}></div>`;
+                    summaryContainer.innerHTML += `<div><label style="font-weight:600; color:#475569; display:block; margin-bottom:5px;">Điểm ${skill}</label><input type="number" step="0.1" id="score-${safeId}" class="form-control score-input" data-custom-skill="${skill}" placeholder="0.0" value="${oldVal}" onchange="calculateTotalScore()" onkeyup="calculateTotalScore()" ${readOnlyStr}></div>`;
                 } else {
                     if (btn) btn.style.display = 'none';
                 }
@@ -1246,9 +1139,60 @@
             calculateTotalScore();
             let activeBtn = document.querySelector('.tab-btn.active');
             if (activeBtn && activeBtn.style.display === 'none') switchTab('summary-tab', document.getElementById('tab-btn-summary'));
+
+            if(currentUser.role === 'student') {
+                document.getElementById('assign-overall-comment').readOnly = true;
+                document.getElementById('prompt-input-container').style.display = 'none';
+                document.getElementById('student-prompt-display').style.display = 'block';
+                document.getElementById('student-prompt-text').innerText = document.getElementById('assign-prompt').value || 'Không có đề bài cụ thể';
+                
+                const sampleGen = document.getElementById('ai-sample-generator-container'); if (sampleGen) sampleGen.style.display = 'none';
+                const fbBar = document.getElementById('feedback-bar-container'); if (fbBar) fbBar.style.display = 'none';
+                document.getElementById('assignment-meta-box-container').style.display = 'none';
+                const guide = document.getElementById('teacher-feedback-guide'); if (guide) guide.style.display = 'none';
+            } else {
+                document.getElementById('assign-overall-comment').readOnly = false;
+                document.getElementById('prompt-input-container').style.display = 'block';
+                document.getElementById('student-prompt-display').style.display = 'none';
+                
+                const sampleGen = document.getElementById('ai-sample-generator-container'); if (sampleGen) sampleGen.style.display = 'block';
+                const fbBar = document.getElementById('feedback-bar-container'); if (fbBar) fbBar.style.display = 'flex';
+                document.getElementById('assignment-meta-box-container').style.display = 'block';
+                const guide = document.getElementById('teacher-feedback-guide'); if (guide) guide.style.display = 'block';
+            }
         }
 
-        // START/LOAD ASSIGNMENTS
+        function configureWorkspaceState(status) {
+            const isStudent = currentUser.role === 'student'; const isTeacher = currentUser.role === 'teacher'; const isAdmin = currentUser.role === 'admin';
+            const editor = document.getElementById('assign-writing-content'); const aiBtn = document.getElementById('btn-ai-grade-writing');
+            
+            document.getElementById('action-controls-teacher').style.display = isTeacher ? 'flex' : 'none';
+            document.getElementById('action-controls-student').style.display = isStudent ? 'flex' : 'none';
+            document.getElementById('action-controls-admin').style.display = isAdmin ? 'flex' : 'none'; 
+
+            if(isTeacher || isAdmin) {
+                editor.setAttribute("contenteditable", isTeacher ? "true" : "false"); 
+                const delBtn = document.getElementById('btn-delete-assign');
+                if(delBtn) delBtn.style.display = (activeAssignmentIndex !== null && isTeacher) ? 'inline-block' : 'none';
+                aiBtn.style.display = isTeacher ? 'inline-block' : 'none';
+            } else if (isStudent) {
+                if (status === 'assigned' || status === 'draft' || status === 'rejected' || status === '' || status === 'ai_graded' || status === undefined) {
+                    editor.setAttribute("contenteditable", "true"); aiBtn.style.display = 'inline-block'; document.getElementById('btn-save-draft').style.display = 'inline-block'; document.getElementById('btn-submit-teacher').style.display = 'inline-block';
+                } else {
+                    editor.setAttribute("contenteditable", "false"); aiBtn.style.display = 'none'; document.getElementById('btn-save-draft').style.display = 'none'; document.getElementById('btn-submit-teacher').style.display = 'none';
+                }
+            }
+
+            if(isStudent) {
+                document.getElementById('student-assignment-info').style.display = 'block';
+                document.getElementById('display-assign-title').innerText = document.getElementById('assign-title').value || "Bài Tập Mới";
+                document.getElementById('display-assign-desc').innerText = document.getElementById('assign-desc').value;
+                document.getElementById('display-assign-date').innerText = `🕒 Deadline / Giờ giao: ${document.getElementById('assign-date').value.replace('T', ' ')}`;
+            } else {
+                document.getElementById('student-assignment-info').style.display = 'none';
+            }
+        }
+
         function createNewAssignment() {
             activeAssignmentIndex = null;
             document.getElementById('assignment-workspace').style.display = 'block';
@@ -1257,48 +1201,48 @@
             document.getElementById('assign-writing-content').innerHTML = ""; document.getElementById('assign-speaking-text').value = "";
             document.getElementById('assign-speaking-feedback').value = ""; document.getElementById('assign-overall-comment').value = "";
             document.getElementById('total-score-val').innerText = "0.0"; document.getElementById('sum-score-val').innerText = "(Tổng cộng: 0.0)";
-            document.getElementById('summary-rubric-scores').innerHTML = '<i>Chưa có thông tin</i>';
+            document.getElementById('summary-rubric-scores').innerHTML = '<i>Chưa có thông tin (hãy chọn bên tab Tiêu Chí)</i>';
             document.getElementById('assign-sample-essay').value = "";
             if(document.getElementById('target-band')) document.getElementById('target-band').value = "";
             
             const now = new Date(); now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
             document.getElementById('assign-date').value = now.toISOString().slice(0,16);
+            if(document.getElementById('btn-delete-assign')) document.getElementById('btn-delete-assign').style.display = 'none';
 
             renderSkillCheckboxes(['writing', 'speaking']);
             document.querySelectorAll('.custom-tab-content').forEach(tab => { tab.querySelector('.custom-skill-title').value = ""; tab.querySelector('.custom-skill-fb').value = ""; });
             
-            updateTabsDisplay();
-            selectedRubricScores = {}; loadSelectedTemplate();
-            switchTab('writing-tab', document.getElementById('tab-btn-writing'));
-            configureWorkspaceState('');
+            updateTabsDisplay(); selectedRubricScores = {}; loadSelectedTemplate(); switchTab('writing-tab', document.getElementById('tab-btn-writing')); configureWorkspaceState('');
+            document.getElementById('assignment-workspace').scrollIntoView({behavior: 'smooth'});
         }
 
         function loadAssignment(index) {
-            activeAssignmentIndex = index;
-            const assign = dataState.students[activeStudentIndex].assignments[index];
-            
+            activeAssignmentIndex = index; const assign = dataState.students[activeStudentIndex].assignments[index];
             document.getElementById('assignment-workspace').style.display = 'block';
             
-            document.getElementById('assign-title').value = assign.title || "";
+            document.getElementById('assign-title').value = assign.title || assign.prompt || "";
             document.getElementById('assign-desc').value = assign.desc || ""; document.getElementById('assign-date').value = assign.date || assign.deadline || "";
             document.getElementById('assign-prompt').value = assign.prompt || ""; document.getElementById('assign-writing-content').innerHTML = assign.writingContent || "";
             document.getElementById('assign-speaking-text').value = assign.speakingText || ""; document.getElementById('assign-speaking-feedback').value = assign.speakingFeedback || "";
             document.getElementById('assign-overall-comment').value = assign.overallComment || ""; document.getElementById('assign-sample-essay').value = assign.sampleEssay || "";
             
+            if(document.getElementById('btn-delete-assign')) document.getElementById('btn-delete-assign').style.display = 'inline-block';
+
             let checkedSkills = [];
             if(assign.hasWriting !== false) checkedSkills.push('writing');
             if(assign.hasSpeaking !== false) checkedSkills.push('speaking');
             
             const customSkillsObj = assign.dynamicScoresObj || {};
+            if (assign.dynamicScores && Array.isArray(assign.dynamicScores)) { assign.dynamicScores.forEach(ds => { if (ds.title) customSkillsObj[ds.title] = { title: ds.title, feedback: "", score: ds.score }; }); }
+
             Object.keys(customSkillsObj).forEach(k => { if (!dataState.availableCustomSkills.includes(k)) dataState.availableCustomSkills.push(k); checkedSkills.push(k); });
-            
             renderSkillCheckboxes(checkedSkills); updateTabsDisplay();
 
             if(assign.hasWriting !== false && document.getElementById('score-writing')) document.getElementById('score-writing').value = assign.scoreWriting || "";
             if(assign.hasSpeaking !== false && document.getElementById('score-speaking')) document.getElementById('score-speaking').value = assign.scoreSpeaking || "";
 
             document.querySelectorAll('.chk-custom-skill:checked').forEach(cb => {
-                const skill = cb.value; const safeId = encodeURIComponent(skill).replace(/%/g, ''); const tabId = `custom-tab-${safeId}`; const tab = document.getElementById(tabId);
+                const skill = cb.value; const safeId = encodeURIComponent(skill).replace(/%/g, ''); const tab = document.getElementById(`custom-tab-${safeId}`);
                 if (tab && customSkillsObj[skill]) { tab.querySelector('.custom-skill-title').value = customSkillsObj[skill].title || ""; tab.querySelector('.custom-skill-fb').value = customSkillsObj[skill].feedback || ""; }
                 const scoreInput = document.getElementById(`score-${safeId}`); if(scoreInput && customSkillsObj[skill]) { scoreInput.value = customSkillsObj[skill].score || ""; }
             });
@@ -1312,68 +1256,7 @@
             if(assign.hasWriting !== false) switchTab('writing-tab', document.getElementById('tab-btn-writing'));
             else switchTab('summary-tab', document.getElementById('tab-btn-summary'));
             
-            calculateTotalScore();
-            configureWorkspaceState(assign.status || 'graded');
-        }
-
-        function configureWorkspaceState(status) {
-            const isStudent = currentUser.role === 'student';
-            const isTeacher = currentUser.role === 'teacher';
-            const isAdmin = currentUser.role === 'admin';
-            
-            const editor = document.getElementById('assign-writing-content');
-            const aiBtn = document.getElementById('btn-ai-grade-writing');
-            
-            document.getElementById('action-controls-teacher').style.display = isTeacher ? 'flex' : 'none';
-            document.getElementById('action-controls-student').style.display = isStudent ? 'flex' : 'none';
-            document.getElementById('action-controls-admin').style.display = isAdmin ? 'flex' : 'none'; 
-
-            if(isTeacher || isAdmin) {
-                editor.setAttribute("contenteditable", isTeacher ? "true" : "false"); 
-                const delBtn = document.getElementById('btn-delete-assign');
-                if(delBtn) delBtn.style.display = (activeAssignmentIndex !== null && isTeacher) ? 'inline-block' : 'none';
-                aiBtn.style.display = isTeacher ? 'inline-block' : 'none';
-            } else if (isStudent) {
-                if (status === 'assigned' || status === 'draft' || status === 'rejected' || status === '' || status === 'ai_graded' || status === undefined) {
-                    editor.setAttribute("contenteditable", "true");
-                    aiBtn.style.display = 'inline-block';
-                    document.getElementById('btn-save-draft').style.display = 'inline-block';
-                    document.getElementById('btn-submit-teacher').style.display = 'inline-block';
-                } else {
-                    editor.setAttribute("contenteditable", "false");
-                    aiBtn.style.display = 'none';
-                    document.getElementById('btn-save-draft').style.display = 'none';
-                    document.getElementById('btn-submit-teacher').style.display = 'none';
-                }
-            }
-
-            if(isStudent) {
-                document.getElementById('student-assignment-info').style.display = 'block';
-                document.getElementById('display-assign-title').innerText = document.getElementById('assign-title').value || "Bài Tập Mới";
-                document.getElementById('display-assign-desc').innerText = document.getElementById('assign-desc').value;
-                document.getElementById('display-assign-date').innerText = `🕒 Deadline: ${document.getElementById('assign-date').value.replace('T', ' ')}`;
-                
-                document.getElementById('assign-overall-comment').readOnly = true;
-                document.getElementById('prompt-input-container').style.display = 'none';
-                document.getElementById('student-prompt-display').style.display = 'block';
-                document.getElementById('student-prompt-text').innerText = document.getElementById('assign-prompt').value || 'Không có đề bài cụ thể';
-                
-                const sampleGen = document.getElementById('ai-sample-generator-container'); if (sampleGen) sampleGen.style.display = 'none';
-                const fbBar = document.getElementById('feedback-bar-container'); if (fbBar) fbBar.style.display = 'none';
-                document.getElementById('assignment-meta-box-container').style.display = 'none';
-                const guide = document.getElementById('teacher-feedback-guide'); if (guide) guide.style.display = 'none';
-            } else {
-                document.getElementById('student-assignment-info').style.display = 'none';
-                
-                document.getElementById('assign-overall-comment').readOnly = false;
-                document.getElementById('prompt-input-container').style.display = 'block';
-                document.getElementById('student-prompt-display').style.display = 'none';
-                
-                const sampleGen = document.getElementById('ai-sample-generator-container'); if (sampleGen) sampleGen.style.display = 'block';
-                const fbBar = document.getElementById('feedback-bar-container'); if (fbBar) fbBar.style.display = 'flex';
-                document.getElementById('assignment-meta-box-container').style.display = 'block';
-                const guide = document.getElementById('teacher-feedback-guide'); if (guide) guide.style.display = 'block';
-            }
+            calculateTotalScore(); configureWorkspaceState(assign.status || 'graded');
         }
 
         function saveAssignmentStatus(statusStr) {
@@ -1410,18 +1293,23 @@
             if (activeAssignmentIndex === null) { student.assignments.push(assignmentData); activeAssignmentIndex = student.assignments.length - 1; } 
             else { student.assignments[activeAssignmentIndex] = assignmentData; }
 
-            saveLocalState(); renderAssignmentList(); renderGradingList(); configureWorkspaceState(statusStr);
-            alert("Đã lưu thao tác!");
-            if(statusStr === 'pending' && currentUser.role === 'student') {
-                closeWorkspace(); // Student auto close workspace after submit
-            }
+            saveLocalState(); renderGradingList(); configureWorkspaceState(statusStr);
+            alert("Thao tác thành công!");
+            if(statusStr === 'pending' && currentUser.role === 'student') { closeWorkspace(); }
         }
 
-        // Tự động gọi cho nút Save Tắt trên tab con
         function saveActiveAssignment() {
             let status = 'graded';
             if(activeAssignmentIndex !== null) { status = dataState.students[activeStudentIndex].assignments[activeAssignmentIndex].status || 'graded'; }
             saveAssignmentStatus(status);
+        }
+
+        function deleteAssignment() {
+            if (activeStudentIndex === null || activeAssignmentIndex === null) return;
+            if (confirm("⚠️ Xóa bài tập này?")) {
+                dataState.students[activeStudentIndex].assignments.splice(activeAssignmentIndex, 1);
+                saveLocalState(); renderGradingList(); document.getElementById('assignment-workspace').style.display = 'none'; activeAssignmentIndex = null;
+            }
         }
 
         function renderSummarySample() {
@@ -1435,6 +1323,13 @@
             if (hasWriting && sampleText && sampleText.trim() !== '') {
                 container.style.display = 'block'; content.innerHTML = `<strong>Mục tiêu: Band ${targetBand || 'Gợi ý'}</strong><br><br>${sampleText}`;
             } else { container.style.display = 'none'; content.innerHTML = ''; }
+        }
+
+        function switchTab(tabId, el) {
+            document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+            document.querySelectorAll('.tab-btn').forEach(t => t.classList.remove('active'));
+            document.getElementById(tabId).classList.add('active'); el.classList.add('active');
+            if (tabId === 'summary-tab') { calculateTotalScore(); renderSummaryRubric(); renderSummarySample(); }
         }
 
         function renderSummaryRubric() {
